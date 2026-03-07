@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useMemo, useEffect } from "react";
 import { Search } from "lucide-react";
@@ -6,27 +6,42 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import { getProducts } from "@/lib/api";
 
 const INSTRUMENT_CATEGORIES = [
-  'Guitars',
-  'Bass',
-  'Drums & Percussion',
-  'Keyboards & Pianos',
-  'Wind Instruments',
-  'String Instruments',
-  'DJ & Electronics',
-  'Studio & Recording',
-  'Accessories',
+  "Guitars",
+  "Bass",
+  "Drums & Percussion",
+  "Keyboards & Pianos",
+  "Wind Instruments",
+  "String Instruments",
+  "DJ & Electronics",
+  "Studio & Recording",
+  "Accessories",
 ];
 
-const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Professional'];
-const CONDITIONS = ['New', 'Used - Like New', 'Used - Good', 'Used - Fair'];
-const FEATURED_BRANDS = ['Fender', 'Gibson', 'Yamaha', 'Roland', 'Pearl', 'Shure', 'Focusrite', 'Pioneer DJ'];
+const SKILL_LEVELS = ["Beginner", "Intermediate", "Professional"];
+const CONDITIONS = ["New", "Used - Like New", "Used - Good", "Used - Fair"];
+const FEATURED_BRANDS = [
+  "Fender",
+  "Gibson",
+  "Yamaha",
+  "Roland",
+  "Pearl",
+  "Shure",
+  "Focusrite",
+  "Pioneer DJ",
+];
 
 const Shop = () => {
   const [products, setProducts] = useState<any[]>([]);
@@ -55,21 +70,39 @@ const Shop = () => {
   }, []);
 
   // Get dynamic brands from fetched data, merge with featured brands
-  const brands = Array.from(new Set([...FEATURED_BRANDS, ...products.map((p) => p.brand)]));
+  const brands = Array.from(
+    new Set([...FEATURED_BRANDS, ...products.map((p) => p.brand)]),
+  );
 
   const filteredProducts = useMemo(() => {
     const filtered = products.filter((product) => {
       const matchesSearch =
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.brand && product.brand.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1];
-      const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(product.category);
-      const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(product.brand);
-      const matchesSkill = selectedSkillLevels.length === 0 || selectedSkillLevels.includes(product.skillLevel);
-      const matchesCondition = selectedConditions.length === 0 || selectedConditions.includes(product.condition);
+        (product.brand &&
+          product.brand.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesPrice =
+        product.price >= priceRange[0] && product.price <= priceRange[1];
+      const matchesCategory =
+        selectedCategories.length === 0 ||
+        selectedCategories.includes(product.category);
+      const matchesBrand =
+        selectedBrands.length === 0 || selectedBrands.includes(product.brand);
+      const matchesSkill =
+        selectedSkillLevels.length === 0 ||
+        selectedSkillLevels.includes(product.skillLevel);
+      const matchesCondition =
+        selectedConditions.length === 0 ||
+        selectedConditions.includes(product.condition);
 
-      return matchesSearch && matchesPrice && matchesCategory && matchesBrand && matchesSkill && matchesCondition;
+      return (
+        matchesSearch &&
+        matchesPrice &&
+        matchesCategory &&
+        matchesBrand &&
+        matchesSkill &&
+        matchesCondition
+      );
     });
 
     // Sorting
@@ -81,7 +114,7 @@ const Shop = () => {
         filtered.sort((a, b) => b.price - a.price);
         break;
       case "newest":
-        filtered.sort((a, b) => b.id.localeCompare(a.id));
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         break;
       case "popularity":
         filtered.sort((a, b) => b.reviews - a.reviews);
@@ -89,11 +122,23 @@ const Shop = () => {
     }
 
     return filtered;
-  }, [products, searchQuery, priceRange, selectedCategories, selectedBrands, selectedSkillLevels, selectedConditions, sortBy]);
+  }, [
+    products,
+    searchQuery,
+    priceRange,
+    selectedCategories,
+    selectedBrands,
+    selectedSkillLevels,
+    selectedConditions,
+    sortBy,
+  ]);
 
-  const toggleFilter = (value: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+  const toggleFilter = (
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+  ) => {
     setter((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
     );
   };
 
@@ -120,9 +165,16 @@ const Shop = () => {
 
       <main className="container mx-auto px-4 py-12">
         <div className="mb-10">
-          <span className="text-accent text-xs font-semibold uppercase tracking-wider mb-2 block">Browse Our Collection</span>
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground">Shop All Instruments</h1>
-          <p className="text-muted-foreground mt-2">Discover our carefully curated selection of premium musical instruments & equipment</p>
+          <span className="text-accent text-xs font-semibold uppercase tracking-wider mb-2 block">
+            Browse Our Collection
+          </span>
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground">
+            Shop All Instruments
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Discover our carefully curated selection of premium musical
+            instruments & equipment
+          </p>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-8">
@@ -168,7 +220,9 @@ const Shop = () => {
                     <Checkbox
                       id={`cat-${category}`}
                       checked={selectedCategories.includes(category)}
-                      onCheckedChange={() => toggleFilter(category, setSelectedCategories)}
+                      onCheckedChange={() =>
+                        toggleFilter(category, setSelectedCategories)
+                      }
                     />
                     <label
                       htmlFor={`cat-${category}`}
@@ -190,7 +244,9 @@ const Shop = () => {
                     <Checkbox
                       id={`skill-${level}`}
                       checked={selectedSkillLevels.includes(level)}
-                      onCheckedChange={() => toggleFilter(level, setSelectedSkillLevels)}
+                      onCheckedChange={() =>
+                        toggleFilter(level, setSelectedSkillLevels)
+                      }
                     />
                     <label
                       htmlFor={`skill-${level}`}
@@ -212,7 +268,9 @@ const Shop = () => {
                     <Checkbox
                       id={`cond-${condition}`}
                       checked={selectedConditions.includes(condition)}
-                      onCheckedChange={() => toggleFilter(condition, setSelectedConditions)}
+                      onCheckedChange={() =>
+                        toggleFilter(condition, setSelectedConditions)
+                      }
                     />
                     <label
                       htmlFor={`cond-${condition}`}
@@ -234,7 +292,9 @@ const Shop = () => {
                     <Checkbox
                       id={`brand-${brand}`}
                       checked={selectedBrands.includes(brand)}
-                      onCheckedChange={() => toggleFilter(brand, setSelectedBrands)}
+                      onCheckedChange={() =>
+                        toggleFilter(brand, setSelectedBrands)
+                      }
                     />
                     <label
                       htmlFor={`brand-${brand}`}
@@ -261,7 +321,8 @@ const Shop = () => {
           <div className="lg:col-span-3">
             <div className="flex items-center justify-between mb-6">
               <p className="text-muted-foreground">
-                Showing {filteredProducts.length} instrument{filteredProducts.length !== 1 ? 's' : ''}
+                Showing {filteredProducts.length} instrument
+                {filteredProducts.length !== 1 ? "s" : ""}
               </p>
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-48">
@@ -279,7 +340,9 @@ const Shop = () => {
 
             {filteredProducts.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-lg text-muted-foreground">No instruments found</p>
+                <p className="text-lg text-muted-foreground">
+                  No instruments found
+                </p>
                 <Button
                   variant="outline"
                   className="mt-4 bg-transparent"
@@ -291,7 +354,7 @@ const Shop = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} {...product} />
+                  <ProductCard key={product._id} {...product} />
                 ))}
               </div>
             )}
