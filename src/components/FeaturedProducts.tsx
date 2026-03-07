@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { ChevronRight, ShoppingBag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const categories = ['Shirts', 'Shorts', 'Jacket', 'Hoodies', 'Trousers', 'Shoes', 'Accessories'];
+const categories = ['Guitars', 'Bass', 'Drums & Percussion', 'Keyboards', 'Wind Instruments', 'DJ & Electronics', 'Accessories'];
 
 const categoryProducts: Record<string, Array<{
   id: string;
@@ -11,38 +11,41 @@ const categoryProducts: Record<string, Array<{
   price: number;
   image: string;
 }>> = {
-  'Shirts': [
-    { id: 'sh-001', name: 'Nike Dri-FIT', subtitle: "Men's T-shirt", price: 60, image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=500&fit=crop' },
-    { id: 'sh-002', name: 'Sportswear Max90', subtitle: "Men's T-shirt", price: 55, image: 'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=400&h=500&fit=crop' },
-    { id: 'sh-003', name: 'Sportswear Essentials', subtitle: "Women's T-shirt", price: 40, image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=400&h=500&fit=crop' },
-    { id: 'sh-004', name: 'Sportswear Club', subtitle: "Men's T-shirt", price: 70, image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=500&fit=crop' },
-    { id: 'sh-005', name: 'Premium Cotton Tee', subtitle: "Unisex T-shirt", price: 45, image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400&h=500&fit=crop' },
+  'Guitars': [
+    { id: 'gt-001', name: 'Fender Stratocaster', subtitle: "Electric Guitar", price: 1499, image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&h=500&fit=crop' },
+    { id: 'gt-002', name: 'Gibson Les Paul', subtitle: "Electric Guitar", price: 2499, image: 'https://images.unsplash.com/photo-1525201548942-d8732f6617a0?w=400&h=500&fit=crop' },
+    { id: 'gt-003', name: 'Yamaha Pacifica', subtitle: "Electric Guitar", price: 399, image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=500&fit=crop' },
+    { id: 'gt-004', name: 'Martin D-28', subtitle: "Acoustic Guitar", price: 2999, image: 'https://images.unsplash.com/photo-1564186763535-ebb21ef5277f?w=400&h=500&fit=crop' },
+    { id: 'gt-005', name: 'Taylor 214ce', subtitle: "Acoustic-Electric", price: 1199, image: 'https://images.unsplash.com/photo-1516924962500-2b4b3b99ea02?w=400&h=500&fit=crop' },
   ],
-  'Shorts': [
-    { id: 'sr-001', name: 'Athletic Shorts', subtitle: "Men's Shorts", price: 45, image: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=400&h=500&fit=crop' },
-    { id: 'sr-002', name: 'Casual Chino Shorts', subtitle: "Men's Shorts", price: 55, image: 'https://images.unsplash.com/photo-1565084888279-aca607ecce0c?w=400&h=500&fit=crop' },
+  'Bass': [
+    { id: 'bs-001', name: 'Fender Precision Bass', subtitle: "Electric Bass", price: 849, image: 'https://images.unsplash.com/photo-1596386461350-326ccb383e9f?w=400&h=500&fit=crop' },
+    { id: 'bs-002', name: 'Music Man StingRay', subtitle: "Electric Bass", price: 2199, image: 'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=400&h=500&fit=crop' },
   ],
-  'Jacket': [
-    { id: 'jk-001', name: 'Bomber Jacket', subtitle: "Men's Jacket", price: 120, image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=500&fit=crop' },
-    { id: 'jk-002', name: 'Denim Jacket', subtitle: "Women's Jacket", price: 95, image: 'https://images.unsplash.com/photo-1495105787522-5334e3ffa0ef?w=400&h=500&fit=crop' },
+  'Drums & Percussion': [
+    { id: 'dr-001', name: 'Pearl Export Kit', subtitle: "5-Piece Drum Set", price: 899, image: 'https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=400&h=500&fit=crop' },
+    { id: 'dr-002', name: 'Roland TD-17KVX', subtitle: "Electronic Drum Kit", price: 1799, image: 'https://images.unsplash.com/photo-1573871669414-010dbf73ca84?w=400&h=500&fit=crop' },
   ],
-  'Hoodies': [
-    { id: 'hd-001', name: 'Pullover Hoodie', subtitle: "Unisex Hoodie", price: 80, image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=500&fit=crop' },
-    { id: 'hd-002', name: 'Zip-Up Hoodie', subtitle: "Men's Hoodie", price: 90, image: 'https://images.unsplash.com/photo-1578768079470-a84c2750981b?w=400&h=500&fit=crop' },
+  'Keyboards': [
+    { id: 'kb-001', name: 'Yamaha P-515', subtitle: "Digital Piano", price: 1499, image: 'https://images.unsplash.com/photo-1549213783-8284d0336c4f?w=400&h=500&fit=crop' },
+    { id: 'kb-002', name: 'Roland JUNO-DS88', subtitle: "Synthesizer", price: 1099, image: 'https://images.unsplash.com/photo-1580234831239-3b6c6bca3944?w=400&h=500&fit=crop' },
   ],
-  'Trousers': [
-    { id: 'tr-001', name: 'Slim Fit Chinos', subtitle: "Men's Trousers", price: 65, image: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=400&h=500&fit=crop' },
+  'Wind Instruments': [
+    { id: 'wi-001', name: 'Selmer Alto Saxophone', subtitle: "Alto Sax", price: 4299, image: 'https://images.unsplash.com/photo-1572195726070-a1b8e2c3a3e2?w=400&h=500&fit=crop' },
+    { id: 'wi-002', name: 'Yamaha YFL-222 Flute', subtitle: "Student Flute", price: 349, image: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=500&fit=crop' },
   ],
-  'Shoes': [
-    { id: 'se-001', name: 'Running Sneakers', subtitle: "Unisex Shoes", price: 110, image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=500&fit=crop' },
+  'DJ & Electronics': [
+    { id: 'dj-001', name: 'Pioneer DDJ-REV7', subtitle: "DJ Controller", price: 1299, image: 'https://images.unsplash.com/photo-1571266028243-e4733b0f0bb0?w=400&h=500&fit=crop' },
+    { id: 'dj-002', name: 'Numark Mixtrack Pro FX', subtitle: "Beginner Controller", price: 249, image: 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400&h=500&fit=crop' },
   ],
   'Accessories': [
-    { id: 'ac-001', name: 'Leather Belt', subtitle: "Men's Accessories", price: 35, image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=500&fit=crop' },
+    { id: 'ac-001', name: 'Ernie Ball Strings 6-Pack', subtitle: "Electric Guitar Strings", price: 39, image: 'https://images.unsplash.com/photo-1516924962500-2b4b3b99ea02?w=400&h=500&fit=crop' },
+    { id: 'ac-002', name: 'Roland KC-15M Amp', subtitle: "Keyboard Amplifier", price: 299, image: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=400&h=500&fit=crop' },
   ],
 };
 
 export const FeaturedProducts = () => {
-  const [activeCategory, setActiveCategory] = useState('Shirts');
+  const [activeCategory, setActiveCategory] = useState('Guitars');
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -64,12 +67,12 @@ export const FeaturedProducts = () => {
           </div>
           <p className="text-xs font-medium text-gray-500 tracking-widest uppercase mb-3"
              style={{ fontFamily: "'Inter', sans-serif" }}>
-            Updated Trends For You
+            Handpicked For You
           </p>
           <div className="flex items-center justify-center gap-3">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900"
                 style={{ fontFamily: "'Playfair Display', serif" }}>
-              Latest Arrivals by Categories
+              Latest Arrivals by Category
             </h2>
             <span className="text-gray-300 text-xs">✦</span>
           </div>

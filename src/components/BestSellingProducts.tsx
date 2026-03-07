@@ -13,7 +13,7 @@ const BestSellingProducts = () => {
         <div className="flex items-center gap-2 mb-6 md:mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900"
               style={{ fontFamily: "'Playfair Display', serif" }}>
-            Featured
+            Editor's Picks
           </h2>
           <span className="text-gray-300 text-xs">✦</span>
         </div>
@@ -25,21 +25,21 @@ const BestSellingProducts = () => {
 
         {/* Two Feature Banners */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {/* Bottega Veneta Women Exclusive Series */}
+          {/* Pro Studio Collection */}
           <div
             className="relative overflow-hidden rounded-2xl group cursor-pointer min-h-[300px] md:min-h-[380px]"
             onClick={() => navigate("/shop")}
           >
             <img
-              src="https://images.unsplash.com/photo-1483985988355-763728e1935b?w=700&h=500&fit=crop"
-              alt="Bottega Veneta Women Exclusive Series"
+              src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=700&h=500&fit=crop"
+              alt="Pro Studio Collection"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
               <h3 className="text-white text-xl md:text-2xl font-bold mb-3 leading-tight"
                   style={{ fontFamily: "'Playfair Display', serif" }}>
-                Bottega Veneta Women<br />Exclusive Series
+                Pro Studio<br />Collection
               </h3>
               <button
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/95 text-gray-900 text-xs font-semibold rounded-full hover:bg-white transition-colors"
@@ -50,21 +50,21 @@ const BestSellingProducts = () => {
             </div>
           </div>
 
-          {/* Street Wear Style Trend Collection */}
+          {/* Live Performance Essentials */}
           <div
             className="relative overflow-hidden rounded-2xl group cursor-pointer min-h-[300px] md:min-h-[380px]"
             onClick={() => navigate("/shop")}
           >
             <img
-              src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=700&h=500&fit=crop"
-              alt="Street Wear Style Trend Collection"
+              src="https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=700&h=500&fit=crop"
+              alt="Live Performance Essentials"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
               <h3 className="text-white text-xl md:text-2xl font-bold mb-3 leading-tight"
                   style={{ fontFamily: "'Playfair Display', serif" }}>
-                Street Wear Style Trend<br />Collection
+                Live Performance<br />Essentials
               </h3>
               <button
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/95 text-gray-900 text-xs font-semibold rounded-full hover:bg-white transition-colors"

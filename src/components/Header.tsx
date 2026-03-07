@@ -14,12 +14,9 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { label: "New & Featured", href: "/" },
-    { label: "Men", href: "/shop" },
-    { label: "Women", href: "/shop" }, 
-    { label: "Kids", href: "/shop" },
-    { label: "Accessories", href: "/shop" },
-    { label: "Sale", href: "/shop" },
+    { label: "Products", href: "/shop" },
+    { label: "About Us", href: "/about" },
+    { label: "Contact Us", href: "/contact" },
   ];
 
   return (
@@ -32,7 +29,7 @@ const Header = () => {
             className="flex-shrink-0"
           >
             <span className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
-              StyleHub
+              CR Music
             </span>
           </button>
 

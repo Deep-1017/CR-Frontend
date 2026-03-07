@@ -15,25 +15,25 @@ const CategoryBanners = () => {
           <span className="text-gray-300 text-xs">✦</span>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900"
               style={{ fontFamily: "'Playfair Display', serif" }}>
-            Explore Our Latest Collections For You
+            Explore Our Latest Instrument Collections
           </h2>
           <span className="text-gray-300 text-xs">✦</span>
         </div>
         <p className="text-sm md:text-base text-gray-500 max-w-xl mx-auto mt-3"
            style={{ fontFamily: "'Inter', sans-serif" }}>
-          Explore our latest collection to unleash your inner fashionista and embark on a journey of confidence, elegance, and impeccable style.
+          Explore our curated instrument collections — from iconic guitars to professional studio gear — and find the sound that defines you.
         </p>
       </div>
 
       {/* Bento Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 max-w-6xl mx-auto">
-        {/* Large Left - Collection for Couples */}
+        {/* Large Left - New Arrivals in Guitars */}
         <div className="md:col-span-7 relative overflow-hidden rounded-2xl group cursor-pointer min-h-[280px] md:min-h-[340px]"
              onClick={() => navigate("/shop")}
         >
           <img
-            src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=800&h=500&fit=crop"
-            alt="Collection for Couples"
+            src="https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800&h=500&fit=crop"
+            alt="New Arrivals in Guitars"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -43,30 +43,30 @@ const CategoryBanners = () => {
           </div>
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
             <h3 className="text-white text-xl md:text-2xl font-bold mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Collection for Couples
+              New Arrivals in Guitars
             </h3>
             <p className="text-white/80 text-sm leading-relaxed max-w-md" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Our collection for couples features coordinated designs and patterns, allowing couples to showcase their unity through fashion.
+              Discover the latest electric and acoustic guitars from Fender, Gibson, and Yamaha — crafted for every level of player.
             </p>
           </div>
         </div>
 
-        {/* Right Column - Sheer Bomber Jacket */}
+        {/* Right Column - Best Sellers in Keyboards */}
         <div className="md:col-span-5 relative overflow-hidden rounded-2xl group cursor-pointer min-h-[280px] md:min-h-[340px]"
              onClick={() => navigate("/shop")}
         >
           <img
-            src="https://images.unsplash.com/photo-1544441893-675973e31985?w=600&h=700&fit=crop"
-            alt="Sheer Bomber Jacket"
+            src="https://images.unsplash.com/photo-1549213783-8284d0336c4f?w=600&h=700&fit=crop"
+            alt="Best Sellers in Keyboards"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
             <h3 className="text-white text-xl md:text-2xl font-bold mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Sheer Bomber Jacket
+              Best Sellers in Keyboards
             </h3>
             <p className="text-white/80 text-sm leading-relaxed mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Introducing our stylish and versatile sheer clergy caped bomber jacket.
+              Explore top-rated digital pianos and synthesizers from Yamaha and Roland.
             </p>
             <Button
               className="px-5 py-2 text-xs font-semibold bg-gray-900 text-white hover:bg-gray-700 rounded-full transition-all"
@@ -81,36 +81,36 @@ const CategoryBanners = () => {
           </div>
         </div>
 
-        {/* Bottom Left - Leather Watch */}
+        {/* Bottom Left - Studio & Recording */}
         <div className="md:col-span-4 relative overflow-hidden rounded-2xl group cursor-pointer min-h-[220px]"
              onClick={() => navigate("/shop")}
         >
           <img
-            src="https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=500&h=400&fit=crop"
-            alt="Leather Watch Collection"
+            src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=500&h=400&fit=crop"
+            alt="Studio & Recording Gear"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
             <h3 className="text-white text-lg md:text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Leather Watch Collection
+              Studio & Recording Gear
             </h3>
           </div>
         </div>
 
-        {/* Bottom Right - New Tote Bags */}
+        {/* Bottom Center - Drums & Percussion */}
         <div className="md:col-span-4 relative overflow-hidden rounded-2xl group cursor-pointer min-h-[220px]"
              onClick={() => navigate("/shop")}
         >
           <img
-            src="https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=500&h=400&fit=crop"
-            alt="New Tote Bags Collection"
+            src="https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=500&h=400&fit=crop"
+            alt="Drums & Percussion Collection"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
             <h3 className="text-white text-lg md:text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
-              New Tote Bags Collection
+              Drums & Percussion
             </h3>
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from "react"
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Award } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 
@@ -13,7 +13,16 @@ interface ProductCardProps {
   price: number;
   originalPrice?: number;
   onSale?: boolean;
+  brand?: string;
+  skillLevel?: string;
+  condition?: string;
 }
+
+const skillLevelColors: Record<string, string> = {
+  'Beginner': 'bg-green-100 text-green-700',
+  'Intermediate': 'bg-blue-100 text-blue-700',
+  'Professional': 'bg-purple-100 text-purple-700',
+};
 
 const ProductCard = ({
   id,
@@ -23,6 +32,9 @@ const ProductCard = ({
   price,
   originalPrice,
   onSale,
+  brand,
+  skillLevel,
+  condition,
 }: ProductCardProps) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -68,18 +80,32 @@ const ProductCard = ({
 
       {/* Product Info */}
       <div className="flex items-start justify-between">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-0.5"
+        <div className="flex-1 min-w-0">
+          {/* Brand badge */}
+          {brand && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1"
+                  style={{ fontFamily: "'Inter', sans-serif" }}>
+              <Award className="w-2.5 h-2.5" /> {brand}
+            </span>
+          )}
+          <h3 className="text-sm font-semibold text-gray-900 mb-0.5 truncate"
               style={{ fontFamily: "'Inter', sans-serif" }}>
             {name}
           </h3>
-          <p className="text-xs text-gray-500" style={{ fontFamily: "'Inter', sans-serif" }}>
+          <p className="text-xs text-gray-500 mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
             {category}
           </p>
+          {/* Skill Level badge */}
+          {skillLevel && (
+            <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${skillLevelColors[skillLevel] || 'bg-gray-100 text-gray-600'}`}
+                  style={{ fontFamily: "'Inter', sans-serif" }}>
+              {skillLevel}
+            </span>
+          )}
         </div>
         <button
           onClick={handleAddToCart}
-          className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors mt-0.5 flex-shrink-0"
+          className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors mt-0.5 flex-shrink-0 ml-2"
         >
           <ShoppingBag className="w-3.5 h-3.5 text-gray-700" />
         </button>

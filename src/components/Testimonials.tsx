@@ -23,7 +23,7 @@ const Testimonials = () => {
             </h2>
             <p className="text-sm text-gray-500"
                style={{ fontFamily: "'Inter', sans-serif" }}>
-              Receive updates on new arrivals and fashion trends.
+              Get updates on new instrument arrivals, gear reviews, and exclusive deals.
             </p>
           </div>
 

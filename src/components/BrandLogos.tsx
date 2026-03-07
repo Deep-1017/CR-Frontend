@@ -1,14 +1,11 @@
 const BrandLogos = () => {
   const brands = [
-    { name: "BOSS", logo: "https://toppng.com/uploads/preview/boss-music-logo-vector-download-free-11574145003zd2gus2xzi.png" },
-    { name: "JBL", logo: "https://w7.pngwing.com/pngs/1022/23/png-transparent-jbl-logo-thumbnail.png" },
-    { name: "PHLOX", logo: "https://cdn.myportfolio.com/3d766dd8-f5f5-4640-8d11-41e0fc61b2a0/00c70ba8-fb69-4a11-b5fd-799ce4e07d38.png?h=78e832224af941bfe04893d451be558c" },
-    {
-      name: "GOLDEN TONE",
-      logo: "https://media.istockphoto.com/id/2209325456/vector/golden-star-shape-with-sparks-effect.jpg?s=1024x1024&w=is&k=20&c=GC25up7J8gDegbN6OBoLuAMoEb7ioMXurlnsRdXL1l8=",
-    },
-    { name: "SWEETY", logo: "https://via.placeholder.com/120x60?text=SWEETY" },
-    { name: "J.R.", logo: "https://via.placeholder.com/120x60?text=J.R." },
+    { name: "Fender", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Fender_guitars_logo.svg/320px-Fender_guitars_logo.svg.png" },
+    { name: "Gibson", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Gibson_Guitar_Corporation_logo.svg/320px-Gibson_Guitar_Corporation_logo.svg.png" },
+    { name: "Yamaha", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Logo_yamaha.svg/320px-Logo_yamaha.svg.png" },
+    { name: "Roland", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Roland_logo.svg/320px-Roland_logo.svg.png" },
+    { name: "Pearl", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Pearl_drums_logo.svg/320px-Pearl_drums_logo.svg.png" },
+    { name: "Shure", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Shure_logo.svg/320px-Shure_logo.svg.png" },
   ];
 
   return (
@@ -17,12 +14,11 @@ const BrandLogos = () => {
         <span className="text-xs md:text-sm font-semibold text-accent tracking-widest uppercase mb-3 inline-block">
           Our Brands
         </span>
-        <h1 className="text-2xl md:text-3xl font-bold text-primary mb-3">
-          Trusted by Leading Music Brands
-        </h1>
+        <h2 className="text-2xl md:text-3xl font-bold text-primary mb-3">
+          Trusted by Leading Instrument Brands
+        </h2>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          As a user, it is important to have a positive experience when using a
-          website or app.
+          We partner with the world's most respected instrument manufacturers to bring you only the finest quality gear.
         </p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8 items-center justify-items-center">
@@ -35,6 +31,15 @@ const BrandLogos = () => {
               src={brand.logo}
               alt={brand.name}
               className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                // Fallback to text if image fails to load
+                const target = e.currentTarget;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent) {
+                  parent.innerHTML = `<span style="font-size:18px;font-weight:800;letter-spacing:-1px;color:#374151">${brand.name}</span>`;
+                }
+              }}
             />
           </div>
         ))}
