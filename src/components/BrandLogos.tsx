@@ -1,11 +1,27 @@
 const BrandLogos = () => {
   const brands = [
-    { name: "Fender", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Fender_guitars_logo.svg/320px-Fender_guitars_logo.svg.png" },
-    { name: "Gibson", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Gibson_Guitar_Corporation_logo.svg/320px-Gibson_Guitar_Corporation_logo.svg.png" },
-    { name: "Yamaha", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Logo_yamaha.svg/320px-Logo_yamaha.svg.png" },
-    { name: "Roland", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/72/Roland_logo.svg/320px-Roland_logo.svg.png" },
-    { name: "Pearl", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Pearl_drums_logo.svg/320px-Pearl_drums_logo.svg.png" },
-    { name: "Shure", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Shure_logo.svg/320px-Shure_logo.svg.png" },
+    { name: "Ahuja", logo: "https://via.placeholder.com/320x120?text=Ahuja" },
+    { name: "StudioMaster", logo: "https://via.placeholder.com/320x120?text=StudioMaster" },
+    { name: "DynaTech", logo: "https://via.placeholder.com/320x120?text=DynaTech" },
+    { name: "Digimore", logo: "https://via.placeholder.com/320x120?text=Digimore" },
+    { name: "NX Audio", logo: "https://via.placeholder.com/320x120?text=NX%20Audio" },
+    { name: "P. Audio", logo: "https://via.placeholder.com/320x120?text=P.%20Audio" },
+    { name: "Sound Craft", logo: "https://via.placeholder.com/320x120?text=Sound%20Craft" },
+    { name: "Stranger", logo: "https://via.placeholder.com/320x120?text=Stranger" },
+    { name: "Dbx", logo: "https://via.placeholder.com/320x120?text=Dbx" },
+    { name: "Pioneer", logo: "https://via.placeholder.com/320x120?text=Pioneer" },
+    { name: "Dasska", logo: "https://via.placeholder.com/320x120?text=Dasska" },
+    { name: "Yamaha", logo: "https://via.placeholder.com/320x120?text=Yamaha" },
+    { name: "Real Audio", logo: "https://via.placeholder.com/320x120?text=Real%20Audio" },
+    { name: "ITS", logo: "https://via.placeholder.com/320x120?text=ITS" },
+    { name: "A Plus", logo: "https://via.placeholder.com/320x120?text=A%20Plus" },
+    { name: "Tauras", logo: "https://via.placeholder.com/320x120?text=Tauras" },
+    { name: "Musimax", logo: "https://via.placeholder.com/320x120?text=Musimax" },
+    { name: "AudioTone", logo: "https://via.placeholder.com/320x120?text=AudioTone" },
+    { name: "Sousys", logo: "https://via.placeholder.com/320x120?text=Sousys" },
+    { name: "NV mark", logo: "https://via.placeholder.com/320x120?text=NV%20mark" },
+    { name: "Dynamite", logo: "https://via.placeholder.com/320x120?text=Dynamite" },
+    { name: "Nlabs", logo: "https://via.placeholder.com/320x120?text=Nlabs" },
   ];
 
   return (

@@ -22,11 +22,11 @@ const Footer = () => {
               Shop
             </h4>
             <ul className="space-y-2.5">
-              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Guitars</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Drums & Percussion</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Keyboards & Pianos</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Studio & Recording</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Accessories</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Amplifier</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Microphone</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Portable Speaker</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Crossover</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-white text-sm transition-colors" style={{ fontFamily: "'Inter', sans-serif" }}>Stands</a></li>
             </ul>
           </div>
 

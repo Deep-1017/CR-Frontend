@@ -1,8 +1,21 @@
 import React, { useState, useRef } from 'react';
 import { ChevronRight, ShoppingBag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { formatINR } from "@/lib/utils";
 
-const categories = ['Guitars', 'Bass', 'Drums & Percussion', 'Keyboards', 'Wind Instruments', 'DJ & Electronics', 'Accessories'];
+const categories = [
+  'Amplifier',
+  'Microphone',
+  'Portable Speaker',
+  'Unit Driver',
+  'Drivers',
+  'Crossover',
+  'Conference System',
+  'Audio Splitter',
+  'Line Array Loadspeaker',
+  'Intellection Speaker',
+  'Stands',
+];
 
 const categoryProducts: Record<string, Array<{
   id: string;
@@ -114,7 +127,7 @@ export const FeaturedProducts = () => {
                   <div className="absolute top-4 left-4 z-10">
                     <span className="text-sm font-semibold text-gray-900"
                           style={{ fontFamily: "'Inter', sans-serif" }}>
-                      $ {product.price}
+                      {formatINR(product.price)}
                     </span>
                   </div>
 

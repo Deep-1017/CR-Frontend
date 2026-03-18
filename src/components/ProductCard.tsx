@@ -3,6 +3,7 @@
 import React from "react"
 import { ShoppingBag, Award } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { formatINR } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
@@ -14,15 +15,8 @@ interface ProductCardProps {
   originalPrice?: number;
   onSale?: boolean;
   brand?: string;
-  skillLevel?: string;
-  condition?: string;
 }
 
-const skillLevelColors: Record<string, string> = {
-  'Beginner': 'bg-green-100 text-green-700',
-  'Intermediate': 'bg-blue-100 text-blue-700',
-  'Professional': 'bg-purple-100 text-purple-700',
-};
 
 const ProductCard = ({
   id,
@@ -33,8 +27,6 @@ const ProductCard = ({
   originalPrice,
   onSale,
   brand,
-  skillLevel,
-  condition,
 }: ProductCardProps) => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -55,7 +47,7 @@ const ProductCard = ({
         <div className="absolute top-4 left-4 z-10">
           <span className="text-sm font-semibold text-gray-900"
                 style={{ fontFamily: "'Inter', sans-serif" }}>
-            $ {price}
+            {formatINR(price)}
           </span>
         </div>
 
@@ -95,13 +87,6 @@ const ProductCard = ({
           <p className="text-xs text-gray-500 mb-1" style={{ fontFamily: "'Inter', sans-serif" }}>
             {category}
           </p>
-          {/* Skill Level badge */}
-          {skillLevel && (
-            <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full ${skillLevelColors[skillLevel] || 'bg-gray-100 text-gray-600'}`}
-                  style={{ fontFamily: "'Inter', sans-serif" }}>
-              {skillLevel}
-            </span>
-          )}
         </div>
         <button
           onClick={handleAddToCart}

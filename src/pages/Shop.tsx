@@ -17,30 +17,71 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
 import { getProducts } from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 
-const INSTRUMENT_CATEGORIES = [
-  "Guitars",
-  "Bass",
-  "Drums & Percussion",
-  "Keyboards & Pianos",
-  "Wind Instruments",
-  "String Instruments",
-  "DJ & Electronics",
-  "Studio & Recording",
-  "Accessories",
+type CategoryNode = {
+  label: string;
+  children?: string[];
+};
+
+const CATEGORY_TREE: CategoryNode[] = [
+  { label: "Amplifier", children: ["Amplifier", "Power Amplifier"] },
+  { label: "Microphone", children: ["Wired", "Wireless"] },
+  { label: "Mixers" },
+  {
+    label: "Portable Speakers",
+    children: ["Active Speaker", "Trolly Speaker"],
+  },
+  { label: "Speakers", children: ["Horn Speaker"] },
+  {
+    label: "Unit Driver",
+    children: ["Driver Unit", "Reflex Horn"],
+  },
+  {
+    label: "Drivers",
+    children: ["HF Drivers", "Tweeters", "Network Drivers"],
+  },
+  {
+    label: "Crossover",
+    children: ["Crossover", "Digital Crossover"],
+  },
+  { label: "Megaphones" },
+  { label: "Conference System", children: ["Wired", "Wireless"] },
+  { label: "Audio Splitter" },
+  { label: "Line Array Loudspeaker" },
+  {
+    label: "Intellection Speaker",
+    children: ["Wall Speaker", "Ceiling Speaker"],
+  },
+  {
+    label: "Stands",
+    children: ["Microphone Stands", "Speaker Stands"],
+  },
 ];
 
-const SKILL_LEVELS = ["Beginner", "Intermediate", "Professional"];
-const CONDITIONS = ["New", "Used - Like New", "Used - Good", "Used - Fair"];
 const FEATURED_BRANDS = [
-  "Fender",
-  "Gibson",
+  "Ahuja",
+  "StudioMaster",
+  "DynaTech",
+  "Digimore",
+  "NX Audio",
+  "P. Audio",
+  "Sound Craft",
+  "Stranger",
+  "Dbx",
+  "Pioneer",
+  "Dasska",
   "Yamaha",
-  "Roland",
-  "Pearl",
-  "Shure",
-  "Focusrite",
-  "Pioneer DJ",
+  "Real Audio",
+  "ITS",
+  "A Plus",
+  "Tauras",
+  "Musimax",
+  "AudioTone",
+  "Sousys",
+  "NV mark",
+  "Dynamite",
+  "Nlabs",
 ];
 
 const Shop = () => {
@@ -50,9 +91,32 @@ const Shop = () => {
   const [priceRange, setPriceRange] = useState([0, 5000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedSkillLevels, setSelectedSkillLevels] = useState<string[]>([]);
-  const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("featured");
+
+  const getCategoryChildren = (category: string) =>
+    CATEGORY_TREE.find((node) => node.label === category)?.children ?? [];
+
+  const expandSelectedCategories = (selected: string[]) => {
+    const set = new Set(selected);
+    selected.forEach((cat) => {
+      getCategoryChildren(cat).forEach((child) => set.add(child));
+    });
+    return set;
+  };
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories((prev) => {
+      const set = new Set(prev);
+      if (set.has(category)) {
+        set.delete(category);
+        getCategoryChildren(category).forEach((child) => set.delete(child));
+      } else {
+        set.add(category);
+        getCategoryChildren(category).forEach((child) => set.add(child));
+      }
+      return Array.from(set);
+    });
+  };
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -83,25 +147,20 @@ const Shop = () => {
           product.brand.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesPrice =
         product.price >= priceRange[0] && product.price <= priceRange[1];
+      const selectedCategorySet =
+        selectedCategories.length === 0
+          ? null
+          : expandSelectedCategories(selectedCategories);
+
       const matchesCategory =
-        selectedCategories.length === 0 ||
-        selectedCategories.includes(product.category);
+        !selectedCategorySet || selectedCategorySet.has(product.category);
       const matchesBrand =
         selectedBrands.length === 0 || selectedBrands.includes(product.brand);
-      const matchesSkill =
-        selectedSkillLevels.length === 0 ||
-        selectedSkillLevels.includes(product.skillLevel);
-      const matchesCondition =
-        selectedConditions.length === 0 ||
-        selectedConditions.includes(product.condition);
-
       return (
         matchesSearch &&
         matchesPrice &&
         matchesCategory &&
-        matchesBrand &&
-        matchesSkill &&
-        matchesCondition
+        matchesBrand
       );
     });
 
@@ -128,8 +187,6 @@ const Shop = () => {
     priceRange,
     selectedCategories,
     selectedBrands,
-    selectedSkillLevels,
-    selectedConditions,
     sortBy,
   ]);
 
@@ -147,8 +204,6 @@ const Shop = () => {
     setPriceRange([0, 5000]);
     setSelectedCategories([]);
     setSelectedBrands([]);
-    setSelectedSkillLevels([]);
-    setSelectedConditions([]);
   };
 
   if (loading) {
@@ -206,8 +261,8 @@ const Shop = () => {
                 className="mb-2"
               />
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>${priceRange[0]}</span>
-                <span>${priceRange[1]}</span>
+                <span>{formatINR(priceRange[0])}</span>
+                <span>{formatINR(priceRange[1])}</span>
               </div>
             </div>
 
@@ -215,69 +270,43 @@ const Shop = () => {
             <div>
               <h3 className="font-semibold mb-3">Categories</h3>
               <div className="space-y-2">
-                {INSTRUMENT_CATEGORIES.map((category) => (
-                  <div key={category} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`cat-${category}`}
-                      checked={selectedCategories.includes(category)}
-                      onCheckedChange={() =>
-                        toggleFilter(category, setSelectedCategories)
-                      }
-                    />
-                    <label
-                      htmlFor={`cat-${category}`}
-                      className="text-sm cursor-pointer"
-                    >
-                      {category}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Skill Level */}
-            <div>
-              <h3 className="font-semibold mb-3">Skill Level</h3>
-              <div className="space-y-2">
-                {SKILL_LEVELS.map((level) => (
-                  <div key={level} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`skill-${level}`}
-                      checked={selectedSkillLevels.includes(level)}
-                      onCheckedChange={() =>
-                        toggleFilter(level, setSelectedSkillLevels)
-                      }
-                    />
-                    <label
-                      htmlFor={`skill-${level}`}
-                      className="text-sm cursor-pointer"
-                    >
-                      {level}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Condition */}
-            <div>
-              <h3 className="font-semibold mb-3">Condition</h3>
-              <div className="space-y-2">
-                {CONDITIONS.map((condition) => (
-                  <div key={condition} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`cond-${condition}`}
-                      checked={selectedConditions.includes(condition)}
-                      onCheckedChange={() =>
-                        toggleFilter(condition, setSelectedConditions)
-                      }
-                    />
-                    <label
-                      htmlFor={`cond-${condition}`}
-                      className="text-sm cursor-pointer"
-                    >
-                      {condition}
-                    </label>
+                {CATEGORY_TREE.map((node) => (
+                  <div key={node.label}>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`cat-${node.label}`}
+                        checked={selectedCategories.includes(node.label)}
+                        onCheckedChange={() => toggleCategory(node.label)}
+                      />
+                      <label
+                        htmlFor={`cat-${node.label}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {node.label}
+                      </label>
+                    </div>
+                    {node.children && (
+                      <div className="ml-5 mt-2 space-y-2">
+                        {node.children.map((child) => (
+                          <div
+                            key={child}
+                            className="flex items-center space-x-2"
+                          >
+                            <Checkbox
+                              id={`cat-${child}`}
+                              checked={selectedCategories.includes(child)}
+                              onCheckedChange={() => toggleCategory(child)}
+                            />
+                            <label
+                              htmlFor={`cat-${child}`}
+                              className="text-sm cursor-pointer"
+                            >
+                              {child}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -354,7 +383,7 @@ const Shop = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
-                  <ProductCard key={product._id} {...product} />
+                  <ProductCard key={product._id ?? product.id} {...product} />
                 ))}
               </div>
             )}

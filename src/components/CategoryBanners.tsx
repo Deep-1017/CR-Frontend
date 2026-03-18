@@ -43,10 +43,10 @@ const CategoryBanners = () => {
           </div>
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
             <h3 className="text-white text-xl md:text-2xl font-bold mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
-              New Arrivals in Guitars
+              New Amplifier Arrivals
             </h3>
             <p className="text-white/80 text-sm leading-relaxed max-w-md" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Discover the latest electric and acoustic guitars from Fender, Gibson, and Yamaha — crafted for every level of player.
+              Discover the latest amplifier solutions and high-power audio gear from leading manufacturers.
             </p>
           </div>
         </div>
@@ -63,10 +63,10 @@ const CategoryBanners = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
             <h3 className="text-white text-xl md:text-2xl font-bold mb-2" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Best Sellers in Keyboards
+              Best Sellers in Microphones
             </h3>
             <p className="text-white/80 text-sm leading-relaxed mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-              Explore top-rated digital pianos and synthesizers from Yamaha and Roland.
+              Explore industry-leading mics and recording gear for studio, podcast, and live streams.
             </p>
             <Button
               className="px-5 py-2 text-xs font-semibold bg-gray-900 text-white hover:bg-gray-700 rounded-full transition-all"
@@ -81,36 +81,36 @@ const CategoryBanners = () => {
           </div>
         </div>
 
-        {/* Bottom Left - Studio & Recording */}
-        <div className="md:col-span-4 relative overflow-hidden rounded-2xl group cursor-pointer min-h-[220px]"
-             onClick={() => navigate("/shop")}
-        >
-          <img
-            src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=500&h=400&fit=crop"
-            alt="Studio & Recording Gear"
-            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
-            <h3 className="text-white text-lg md:text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Studio & Recording Gear
-            </h3>
-          </div>
-        </div>
-
-        {/* Bottom Center - Drums & Percussion */}
+        {/* Bottom Left - Portable Speaker */}
         <div className="md:col-span-4 relative overflow-hidden rounded-2xl group cursor-pointer min-h-[220px]"
              onClick={() => navigate("/shop")}
         >
           <img
             src="https://images.unsplash.com/photo-1519892300165-cb5542fb47c7?w=500&h=400&fit=crop"
-            alt="Drums & Percussion Collection"
+            alt="Portable Speaker Collection"
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
             <h3 className="text-white text-lg md:text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Drums & Percussion
+              Portable Speaker Collections
+            </h3>
+          </div>
+        </div>
+
+        {/* Bottom Center - Stands */}
+        <div className="md:col-span-4 relative overflow-hidden rounded-2xl group cursor-pointer min-h-[220px]"
+             onClick={() => navigate("/shop")}
+        >
+          <img
+            src="https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=500&h=400&fit=crop"
+            alt="Stands & Hardware"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
+            <h3 className="text-white text-lg md:text-xl font-bold" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Stands & Hardware
             </h3>
           </div>
         </div>

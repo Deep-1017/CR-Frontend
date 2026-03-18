@@ -1,6 +1,7 @@
 import { X, ShoppingBag, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
+import { formatINR } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useNavigate } from "react-router-dom";
 
@@ -46,7 +47,7 @@ const CartSidebar = () => {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold truncate">{item.name}</h3>
                       <p className="text-sm text-muted-foreground">{item.category}</p>
-                      <p className="font-bold mt-1">${item.price}</p>
+                      <p className="font-bold mt-1">{formatINR(item.price)}</p>
                       
                       <div className="flex items-center gap-2 mt-2">
                         <Button
@@ -82,7 +83,7 @@ const CartSidebar = () => {
               <div className="border-t border-border pt-4 space-y-4">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>
-                  <span>${totalPrice.toFixed(2)}</span>
+                    <span>{formatINR(totalPrice)}</span>
                 </div>
                 <Button className="w-full" size="lg" onClick={handleCheckout}>
                   Proceed to Checkout

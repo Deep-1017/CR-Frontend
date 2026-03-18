@@ -1,25 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Heart, Minus, Plus, ChevronRight, Tag, Award, Package } from "lucide-react";
+import { Heart, Minus, Plus, ChevronRight, Tag, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getProductById, getProducts } from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 
-const skillLevelColors: Record<string, string> = {
-  'Beginner': 'bg-green-100 text-green-800',
-  'Intermediate': 'bg-blue-100 text-blue-800',
-  'Professional': 'bg-purple-100 text-purple-800',
-};
-
-const conditionColors: Record<string, string> = {
-  'New': 'bg-emerald-100 text-emerald-800',
-  'Used - Like New': 'bg-sky-100 text-sky-800',
-  'Used - Good': 'bg-yellow-100 text-yellow-800',
-  'Used - Fair': 'bg-orange-100 text-orange-800',
-};
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -161,19 +150,6 @@ const ProductDetail = () => {
                 <Award className="w-3 h-3" />
                 {product.brand}
               </span>
-              {product.skillLevel && (
-                <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${skillLevelColors[product.skillLevel] || 'bg-gray-100 text-gray-700'}`}
-                      style={{ fontFamily: "'Inter', sans-serif" }}>
-                  {product.skillLevel}
-                </span>
-              )}
-              {product.condition && (
-                <span className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${conditionColors[product.condition] || 'bg-gray-100 text-gray-700'}`}
-                      style={{ fontFamily: "'Inter', sans-serif" }}>
-                  <Package className="w-3 h-3" />
-                  {product.condition}
-                </span>
-              )}
             </div>
 
             {/* Product Title */}
@@ -188,11 +164,11 @@ const ProductDetail = () => {
             {/* Price */}
             <div className="flex items-center gap-3 mb-8">
               <span className="text-xl text-gray-900 font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>
-                ${product.price.toFixed(2)}
+                {formatINR(product.price)}
               </span>
               {product.originalPrice && (
                 <span className="text-base text-gray-400 line-through" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  ${product.originalPrice.toFixed(2)}
+                  {formatINR(product.originalPrice)}
                 </span>
               )}
               {product.onSale && (
@@ -345,7 +321,7 @@ const ProductDetail = () => {
                     />
                   </div>
                   <p className="text-sm font-semibold text-gray-900 truncate" style={{ fontFamily: "'Inter', sans-serif" }}>{related.name}</p>
-                  <p className="text-xs text-gray-500" style={{ fontFamily: "'Inter', sans-serif" }}>${related.price}</p>
+                  <p className="text-xs text-gray-500" style={{ fontFamily: "'Inter', sans-serif" }}>{formatINR(related.price)}</p>
                 </div>
               ))}
             </div>

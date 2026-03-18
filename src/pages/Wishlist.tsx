@@ -5,6 +5,7 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useCart } from "@/contexts/CartContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { formatINR } from "@/lib/utils";
 
 const Wishlist = () => {
   const navigate = useNavigate();
@@ -77,10 +78,10 @@ const Wishlist = () => {
                     {item.name}
                   </h3>
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-lg font-bold">${item.price}</span>
+                    <span className="text-lg font-bold">{formatINR(item.price)}</span>
                     {item.originalPrice && (
                       <span className="text-sm text-muted-foreground line-through">
-                        ${item.originalPrice}
+                        {formatINR(item.originalPrice)}
                       </span>
                     )}
                   </div>

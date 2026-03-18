@@ -9,6 +9,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { toast } from "@/hooks/use-toast";
 import { createOrder } from "@/lib/api";
+import { formatINR } from "@/lib/utils";
 
 const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
@@ -42,25 +43,30 @@ const Checkout = () => {
     }
 
     try {
+      const orderTotal = Number((totalPrice * 1.1).toFixed(2));
+
       const orderData = {
-        orderItems: items.map(item => ({
-          name: item.name,
-          qty: item.quantity,
-          image: item.image,
-          price: item.price,
-          product: item.id,
-        })),
-        shippingAddress: {
+        customer: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone || undefined,
           address: formData.address,
           city: formData.city,
-          postalCode: formData.zipCode,
-          country: "USA", // Default for now
+          state: formData.state || undefined,
+          zipCode: formData.zipCode,
         },
-        paymentMethod: "Card",
-        itemsPrice: totalPrice,
-        taxPrice: totalPrice * 0.1,
-        shippingPrice: 0,
-        totalPrice: totalPrice * 1.1,
+        items: items.map((item) => ({
+          productId: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        })),
+        totalAmount: orderTotal,
+        paymentDetails: {
+          provider: "card",
+        },
       };
 
       await createOrder(orderData);
@@ -208,7 +214,7 @@ const Checkout = () => {
               </Card>
 
               {/* Payment Information */}
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Payment Information</CardTitle>
                 </CardHeader>
@@ -261,7 +267,7 @@ const Checkout = () => {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
             </div>
 
             {/* Order Summary */}
@@ -281,7 +287,7 @@ const Checkout = () => {
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">{item.name}</p>
                         <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
-                        <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="font-semibold">{formatINR(item.price * item.quantity)}</p>
                       </div>
                     </div>
                   ))}
@@ -289,7 +295,7 @@ const Checkout = () => {
                   <div className="border-t border-border pt-4 space-y-2">
                     <div className="flex justify-between">
                       <span>Subtotal</span>
-                      <span>${totalPrice.toFixed(2)}</span>
+                      <span>{formatINR(totalPrice)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Shipping</span>
@@ -297,11 +303,11 @@ const Checkout = () => {
                     </div>
                     <div className="flex justify-between">
                       <span>Tax</span>
-                      <span>${(totalPrice * 0.1).toFixed(2)}</span>
+                      <span>{formatINR(totalPrice * 0.1)}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold border-t border-border pt-2">
                       <span>Total</span>
-                      <span>${(totalPrice * 1.1).toFixed(2)}</span>
+                      <span>{formatINR(totalPrice * 1.1)}</span>
                     </div>
                   </div>
 
