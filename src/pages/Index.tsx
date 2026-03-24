@@ -6,6 +6,7 @@ import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
 import { FeaturedProducts } from "@/components/FeaturedProducts";
 import BestSellingProducts from "@/components/BestSellingProducts";
+import CompanyLogos from "@/components/CompanyLogos";
 
 const Index = () => {
   return (
@@ -15,6 +16,7 @@ const Index = () => {
       <CategoryBanners />
       <FeaturedProducts />
       <BestSellingProducts />
+      <CompanyLogos />
       <GuitarCollection />
       {/* <Testimonials /> */}
       <Footer />
