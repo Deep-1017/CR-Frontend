@@ -28,6 +28,7 @@ const ProductDetail = () => {
         setLoading(true);
         const data = await getProductById(id);
         setProduct(data);
+        setSelectedImage(0);
 
         const allProducts = await getProducts();
         const related = allProducts.filter(
@@ -96,6 +97,12 @@ const ProductDetail = () => {
 
   const inWishlist = isInWishlist(product.id);
 
+  const images = (product.images && product.images.length > 0)
+    ? product.images
+    : product.image
+      ? [product.image]
+      : [];
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -120,14 +127,14 @@ const ProductDetail = () => {
             {/* Main Image */}
             <div className="aspect-[4/5] bg-gray-50 rounded-lg overflow-hidden mb-4">
               <img
-                src={product.images[selectedImage]}
+                src={images[selectedImage] || "/placeholder.svg"}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
             {/* Thumbnail Grid */}
             <div className="grid grid-cols-6 gap-2">
-              {product.images.map((img: string, idx: number) => (
+              {images.map((img: string, idx: number) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedImage(idx)}
