@@ -9,6 +9,16 @@ const api = axios.create({
     },
 });
 
+api.interceptors.request.use((config) => {
+    if (typeof window !== 'undefined') {
+        const token = window.localStorage.getItem('authToken') ?? window.localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+    }
+    return config;
+});
+
 export const getProducts = async () => {
     const response = await api.get('/products');
     return response.data.products;
@@ -19,8 +29,28 @@ export const getProductById = async (id: string) => {
     return response.data;
 };
 
-export const createOrder = async (orderData: any) => {
+export const createOrder = async (orderData: unknown) => {
     const response = await api.post('/orders', orderData);
+    return response.data;
+};
+
+export interface LoginPayload {
+    email: string;
+    password: string;
+}
+
+export interface LoginResponse {
+    token: string;
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        role: 'customer' | 'admin';
+    };
+}
+
+export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>('/auth/login', payload);
     return response.data;
 };
 

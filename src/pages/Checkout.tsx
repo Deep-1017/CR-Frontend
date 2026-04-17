@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +8,34 @@ import { useCart } from "@/contexts/CartContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { toast } from "@/hooks/use-toast";
-import { createOrder } from "@/lib/api";
 import { formatINR } from "@/lib/utils";
+import {
+  createPaymentOrder,
+  initiateRazorpayPayment,
+  verifyPaymentWebhook,
+  type RazorpaySuccessResponse,
+} from "@/services/paymentService";
+import PaymentFlowErrorBoundary from "@/components/payment/PaymentFlowErrorBoundary";
 
-const Checkout = () => {
+const logPaymentError = (error: unknown, context: string): void => {
+  console.error(`[PaymentFlow] ${context}`, error);
+
+  const sentryCaptureException = (
+    globalThis as typeof globalThis & {
+      Sentry?: { captureException?: (exception: unknown, hint?: { tags?: Record<string, string> }) => void };
+    }
+  ).Sentry?.captureException;
+
+  if (typeof sentryCaptureException === "function") {
+    sentryCaptureException(error, { tags: { context: "payment-flow", step: context } });
+  }
+};
+
+const CheckoutContent = () => {
   const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
+  const paymentFinalizedRef = useRef(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -31,6 +53,18 @@ const Checkout = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isProcessingPayment) return;
+
+    const authToken = window.localStorage.getItem("authToken") ?? window.localStorage.getItem("token");
+    if (!authToken) {
+      toast({
+        title: "Sign in required",
+        description: "Please login first to continue with payment.",
+        variant: "destructive",
+      });
+      navigate("/login?redirect=/checkout");
+      return;
+    }
 
     // Simple validation
     if (!formData.firstName || !formData.email || !formData.address) {
@@ -43,48 +77,69 @@ const Checkout = () => {
     }
 
     try {
+      setIsProcessingPayment(true);
+      paymentFinalizedRef.current = false;
       const orderTotal = Number((totalPrice * 1.1).toFixed(2));
+      const cartItems = items.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+      const paymentOrder = await createPaymentOrder(cartItems, orderTotal);
 
-      const orderData = {
-        customer: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone || undefined,
-          address: formData.address,
-          city: formData.city,
-          state: formData.state || undefined,
-          zipCode: formData.zipCode,
+      await initiateRazorpayPayment(
+        paymentOrder,
+        async (response: RazorpaySuccessResponse) => {
+          try {
+            await verifyPaymentWebhook({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+
+            paymentFinalizedRef.current = true;
+            window.localStorage.removeItem("cart");
+            clearCart();
+            navigate(`/order-confirmation/${paymentOrder.orderId}`, {
+              state: { orderId: paymentOrder.orderId },
+            });
+          } catch (error) {
+            logPaymentError(error, "verify-webhook");
+            toast({
+              title: "Payment verification failed",
+              description: "Payment verification failed. Contact support.",
+              variant: "destructive",
+            });
+          } finally {
+            setIsProcessingPayment(false);
+          }
         },
-        items: items.map((item) => ({
-          productId: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image,
-        })),
-        totalAmount: orderTotal,
-        paymentDetails: {
-          provider: "card",
+        (error) => {
+          logPaymentError(error, "razorpay-payment-failed");
+          toast({
+            title: "Unable to process payment",
+            description: "Unable to process payment. Try again",
+            variant: "destructive",
+          });
+          setIsProcessingPayment(false);
         },
-      };
-
-      await createOrder(orderData);
-
-      toast({
-        title: "Order placed successfully!",
-        description: "Thank you for your purchase. You will receive a confirmation email soon.",
-      });
-
-      clearCart();
-      navigate("/");
+        () => {
+          if (paymentFinalizedRef.current) return;
+          toast({
+            title: "Payment cancelled",
+            description: "Payment cancelled",
+          });
+          setIsProcessingPayment(false);
+        }
+      );
     } catch (error) {
-      console.error("Order creation failed:", error);
+      logPaymentError(error, "create-payment-order-or-init");
       toast({
-        title: "Order failed",
-        description: "Something went wrong. Please try again.",
+        title: "Unable to process payment",
+        description: "Unable to process payment. Try again",
         variant: "destructive",
       });
+      setIsProcessingPayment(false);
     }
   };
 
@@ -311,8 +366,8 @@ const Checkout = () => {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full" size="lg">
-                    Place Order
+                  <Button type="submit" className="w-full" size="lg" disabled={isProcessingPayment}>
+                    {isProcessingPayment ? "Processing..." : "Place Order"}
                   </Button>
                 </CardContent>
               </Card>
@@ -325,5 +380,11 @@ const Checkout = () => {
     </div>
   );
 };
+
+const Checkout = () => (
+  <PaymentFlowErrorBoundary>
+    <CheckoutContent />
+  </PaymentFlowErrorBoundary>
+);
 
 export default Checkout;

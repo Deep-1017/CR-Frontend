@@ -63,6 +63,7 @@ const Header = () => {
               variant="ghost"
               size="icon"
               className="h-10 w-10 text-gray-700 hover:text-black hover:bg-transparent hidden sm:flex"
+              onClick={() => navigate("/login")}
             >
               <User className="h-[20px] w-[20px]" strokeWidth={1.5} />
             </Button>
