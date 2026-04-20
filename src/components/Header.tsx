@@ -1,15 +1,26 @@
 'use client';
 
-import { Search, Heart, User, Menu, X, ShoppingBag } from "lucide-react";
+import { Search, Heart, User, Menu, X, ShoppingBag, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Header = () => {
   const { totalItems, setIsCartOpen } = useCart();
   const { totalItems: wishlistTotal } = useWishlist();
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -18,6 +29,20 @@ const Header = () => {
     { label: "About Us", href: "/about" },
     { label: "Contact Us", href: "/contact" },
   ];
+
+  const userInitials = user?.name
+    ? user.name
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() ?? "")
+        .join("")
+    : "CR";
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
@@ -59,14 +84,50 @@ const Header = () => {
             </Button>
 
             {/* User */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 text-gray-700 hover:text-black hover:bg-transparent hidden sm:flex"
-              onClick={() => navigate("/login")}
-            >
-              <User className="h-[20px] w-[20px]" strokeWidth={1.5} />
-            </Button>
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 text-gray-700 hover:text-black hover:bg-transparent hidden sm:flex overflow-hidden rounded-full"
+                    aria-label="Open account menu"
+                  >
+                    <Avatar className="h-8 w-8 border border-stone-200">
+                      <AvatarImage src={user?.avatar || undefined} alt={user?.name || "User"} />
+                      <AvatarFallback className="bg-stone-100 text-[11px] font-semibold text-stone-700">
+                        {userInitials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="mt-2 w-60">
+                  <DropdownMenuLabel className="space-y-0.5">
+                    <div className="text-sm font-semibold text-stone-900">{user?.name}</div>
+                    <div className="text-xs font-normal text-stone-500">{user?.email}</div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate("/account")} className="cursor-pointer">
+                    <LayoutDashboard className="h-4 w-4" />
+                    My Account
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 text-gray-700 hover:text-black hover:bg-transparent hidden sm:flex"
+                onClick={() => navigate("/login")}
+                aria-label="Open login page"
+              >
+                <User className="h-[20px] w-[20px]" strokeWidth={1.5} />
+              </Button>
+            )}
 
             {/* Wishlist */}
             <Button
@@ -126,6 +187,16 @@ const Header = () => {
                 {link.label}
               </button>
             ))}
+            <button
+              onClick={() => {
+                navigate(isAuthenticated ? "/account" : "/login");
+                setMobileMenuOpen(false);
+              }}
+              className="text-sm font-medium text-gray-700 text-left hover:text-black transition-colors py-1"
+              style={{ fontFamily: "'Inter', sans-serif" }}
+            >
+              {isAuthenticated ? "My Account" : "Login"}
+            </button>
           </nav>
         )}
       </div>

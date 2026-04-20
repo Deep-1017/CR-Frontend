@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AxiosError } from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,8 @@ import {
   createPaymentOrder,
   initiateRazorpayPayment,
   verifyPaymentWebhook,
+  type CheckoutCustomer,
+  type CheckoutPricing,
   type RazorpaySuccessResponse,
 } from "@/services/paymentService";
 import PaymentFlowErrorBoundary from "@/components/payment/PaymentFlowErrorBoundary";
@@ -29,6 +32,21 @@ const logPaymentError = (error: unknown, context: string): void => {
   if (typeof sentryCaptureException === "function") {
     sentryCaptureException(error, { tags: { context: "payment-flow", step: context } });
   }
+};
+
+const getCheckoutErrorMessage = (error: unknown): string => {
+  if (error instanceof AxiosError) {
+    return (
+      (error.response?.data as { message?: string } | undefined)?.message ??
+      "Unable to process payment. Try again."
+    );
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return "Unable to process payment. Try again.";
 };
 
 const CheckoutContent = () => {
@@ -50,12 +68,21 @@ const CheckoutContent = () => {
     cardExpiry: "",
     cardCvv: "",
   });
+  const pricing: CheckoutPricing = {
+    subtotal: Number(totalPrice.toFixed(2)),
+    tax: Number((totalPrice * 0.1).toFixed(2)),
+    shipping: 0,
+    total: Number((totalPrice * 1.1).toFixed(2)),
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isProcessingPayment) return;
 
-    const authToken = window.localStorage.getItem("authToken") ?? window.localStorage.getItem("token");
+    const authToken =
+      window.localStorage.getItem("auth_token") ??
+      window.localStorage.getItem("authToken") ??
+      window.localStorage.getItem("token");
     if (!authToken) {
       toast({
         title: "Sign in required",
@@ -66,8 +93,17 @@ const CheckoutContent = () => {
       return;
     }
 
-    // Simple validation
-    if (!formData.firstName || !formData.email || !formData.address) {
+    const requiredFields: Array<keyof typeof formData> = [
+      "firstName",
+      "lastName",
+      "email",
+      "address",
+      "city",
+      "zipCode",
+    ];
+    const missingRequiredField = requiredFields.some((field) => !formData[field].trim());
+
+    if (missingRequiredField) {
       toast({
         title: "Missing information",
         description: "Please fill in all required fields",
@@ -79,13 +115,22 @@ const CheckoutContent = () => {
     try {
       setIsProcessingPayment(true);
       paymentFinalizedRef.current = false;
-      const orderTotal = Number((totalPrice * 1.1).toFixed(2));
+      const customer: CheckoutCustomer = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || undefined,
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim() || undefined,
+        zipCode: formData.zipCode.trim(),
+      };
       const cartItems = items.map((item) => ({
         productId: item.id,
         quantity: item.quantity,
         price: item.price,
       }));
-      const paymentOrder = await createPaymentOrder(cartItems, orderTotal);
+      const paymentOrder = await createPaymentOrder(customer, cartItems, pricing);
 
       await initiateRazorpayPayment(
         paymentOrder,
@@ -136,7 +181,7 @@ const CheckoutContent = () => {
       logPaymentError(error, "create-payment-order-or-init");
       toast({
         title: "Unable to process payment",
-        description: "Unable to process payment. Try again",
+        description: getCheckoutErrorMessage(error),
         variant: "destructive",
       });
       setIsProcessingPayment(false);
@@ -167,7 +212,7 @@ const CheckoutContent = () => {
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8">Checkout</h1>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
               {/* Shipping Information */}
@@ -350,19 +395,19 @@ const CheckoutContent = () => {
                   <div className="border-t border-border pt-4 space-y-2">
                     <div className="flex justify-between">
                       <span>Subtotal</span>
-                      <span>{formatINR(totalPrice)}</span>
+                      <span>{formatINR(pricing.subtotal)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Shipping</span>
-                      <span>Free</span>
+                      <span>{pricing.shipping === 0 ? "Free" : formatINR(pricing.shipping)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Tax</span>
-                      <span>{formatINR(totalPrice * 0.1)}</span>
+                      <span>{formatINR(pricing.tax)}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold border-t border-border pt-2">
                       <span>Total</span>
-                      <span>{formatINR(totalPrice * 1.1)}</span>
+                      <span>{formatINR(pricing.total)}</span>
                     </div>
                   </div>
 

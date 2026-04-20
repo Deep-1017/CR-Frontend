@@ -2,16 +2,21 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, Loader2, AlertCircle, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 
-const loginSchema = z.object({
+const registerSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(60, 'Name too long'),
   email: z.string().email('Enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
+  password: z
+    .string()
+    .min(8, 'At least 8 characters')
+    .regex(/[A-Z]/, 'Include an uppercase letter')
+    .regex(/[0-9]/, 'Include a number'),
 });
-type LoginForm = z.infer<typeof loginSchema>;
+type RegisterForm = z.infer<typeof registerSchema>;
 
 const GoogleIcon = () => (
   <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -22,45 +27,56 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export default function Login() {
+const PasswordRule = ({
+  met,
+  label,
+}: {
+  met: boolean;
+  label: string;
+}) => (
+  <li className={`flex items-center gap-1.5 text-xs transition-colors ${met ? 'text-emerald-600' : 'text-stone-400'}`}>
+    <Check size={11} className={met ? 'opacity-100' : 'opacity-30'} />
+    {label}
+  </li>
+);
+
+export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const { login, loginWithGoogle, isAuthenticated } = useAuth();
+  const [passwordValue, setPasswordValue] = useState('');
+  const { register: registerUser, loginWithGoogle, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
-  const redirectTo =
-    (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ||
-    searchParams.get('redirect') ||
-    '/';
 
   useEffect(() => {
-    const error = searchParams.get('error');
-    const session = searchParams.get('session');
-    if (error === 'oauth_failed') toast.error('Google sign-in failed. Please try again.');
-    if (session === 'expired') toast.error('Your session expired. Please sign in again.');
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (isAuthenticated) navigate(redirectTo, { replace: true });
-  }, [isAuthenticated, navigate, redirectTo]);
+    if (isAuthenticated) navigate('/', { replace: true });
+  }, [isAuthenticated, navigate]);
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
     setError,
-  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  } = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
 
-  const onSubmit = async (data: LoginForm) => {
+  const pwd = watch('password', '');
+  useEffect(() => setPasswordValue(pwd || ''), [pwd]);
+
+  const rules = [
+    { met: passwordValue.length >= 8, label: 'At least 8 characters' },
+    { met: /[A-Z]/.test(passwordValue), label: 'One uppercase letter' },
+    { met: /[0-9]/.test(passwordValue), label: 'One number' },
+  ];
+
+  const onSubmit = async (data: RegisterForm) => {
     try {
-      await login(data.email, data.password);
-      toast.success('Welcome back!');
-      navigate(redirectTo, { replace: true });
+      await registerUser(data.name, data.email, data.password);
+      toast.success('Account created! Welcome to CR Store.');
+      navigate('/');
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Something went wrong. Try again.';
-      if (msg.toLowerCase().includes('password') || msg.toLowerCase().includes('email')) {
-        setError('password', { message: msg });
+      if (msg.toLowerCase().includes('email') || msg.toLowerCase().includes('exists')) {
+        setError('email', { message: msg });
       } else {
         toast.error(msg);
       }
@@ -90,9 +106,9 @@ export default function Login() {
           <span className="text-stone-900 font-semibold text-sm tracking-tight">CR Store</span>
         </Link>
         <p className="text-stone-500 text-sm">
-          New here?{' '}
-          <Link to="/register" className="text-stone-900 font-medium underline underline-offset-2 hover:text-stone-600 transition-colors">
-            Create account
+          Already have an account?{' '}
+          <Link to="/login" className="text-stone-900 font-medium underline underline-offset-2 hover:text-stone-600 transition-colors">
+            Sign in
           </Link>
         </p>
       </header>
@@ -101,9 +117,9 @@ export default function Login() {
           <div className="bg-white border border-stone-200/80 rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.06)] overflow-hidden">
             <div className="px-8 pt-8 pb-6 border-b border-stone-100">
               <h1 className="text-[22px] font-semibold text-stone-900 tracking-tight">
-                Sign in to your account
+                Create your account
               </h1>
-              <p className="mt-1 text-sm text-stone-500">Welcome back — let's get you in.</p>
+              <p className="mt-1 text-sm text-stone-500">Join CR Store — it only takes a minute.</p>
             </div>
             <div className="px-8 py-7 space-y-5">
               <button type="button" onClick={handleGoogleLogin} disabled={isGoogleLoading || isSubmitting} className="w-full flex items-center justify-center gap-3 h-11 rounded-xl border border-stone-200 bg-white text-stone-700 text-sm font-medium hover:bg-stone-50 hover:border-stone-300 active:scale-[0.99] transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm">
@@ -117,13 +133,26 @@ export default function Login() {
               </div>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                 <div className="space-y-1.5">
+                  <label htmlFor="name" className="block text-sm font-medium text-stone-700">
+                    Full name
+                  </label>
+                  <input id="name" type="text" autoComplete="name" placeholder="Alex Johnson" {...register('name')} className={`w-full h-11 px-3.5 rounded-xl border text-sm text-stone-900 placeholder:text-stone-400 bg-white outline-none transition-all focus:ring-2 focus:ring-stone-900/10 focus:border-stone-400 ${
+                      errors.name ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-stone-200'
+                    }`}
+                  />
+                  {errors.name && (
+                    <p className="flex items-center gap-1.5 text-xs text-red-500">
+                      <AlertCircle size={12} />
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
                   <label htmlFor="email" className="block text-sm font-medium text-stone-700">
                     Email address
                   </label>
                   <input id="email" type="email" autoComplete="email" placeholder="you@example.com" {...register('email')} className={`w-full h-11 px-3.5 rounded-xl border text-sm text-stone-900 placeholder:text-stone-400 bg-white outline-none transition-all focus:ring-2 focus:ring-stone-900/10 focus:border-stone-400 ${
-                      errors.email
-                        ? 'border-red-400 focus:ring-red-100 focus:border-red-400'
-                        : 'border-stone-200'
+                      errors.email ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-stone-200'
                     }`}
                   />
                   {errors.email && (
@@ -134,26 +163,26 @@ export default function Login() {
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="password" className="block text-sm font-medium text-stone-700">
-                      Password
-                    </label>
-                    <Link to="/forgot-password" className="text-xs text-stone-500 hover:text-stone-800 transition-colors">
-                      Forgot password?
-                    </Link>
-                  </div>
+                  <label htmlFor="password" className="block text-sm font-medium text-stone-700">
+                    Password
+                  </label>
                   <div className="relative">
-                    <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="••••••••" {...register('password')} className={`w-full h-11 px-3.5 pr-11 rounded-xl border text-sm text-stone-900 placeholder:text-stone-400 bg-white outline-none transition-all focus:ring-2 focus:ring-stone-900/10 focus:border-stone-400 ${
-                        errors.password
-                          ? 'border-red-400 focus:ring-red-100 focus:border-red-400'
-                          : 'border-stone-200'
+                    <input id="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" placeholder="••••••••" {...register('password')} className={`w-full h-11 px-3.5 pr-11 rounded-xl border text-sm text-stone-900 placeholder:text-stone-400 bg-white outline-none transition-all focus:ring-2 focus:ring-stone-900/10 focus:border-stone-400 ${
+                        errors.password ? 'border-red-400 focus:ring-red-100 focus:border-red-400' : 'border-stone-200'
                       }`}
                     />
                     <button type="button" onClick={() => setShowPassword((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors" tabIndex={-1} aria-label={showPassword ? 'Hide password' : 'Show password'}>
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  {errors.password && (
+                  {passwordValue.length > 0 && (
+                    <ul className="mt-2 space-y-1 pl-0.5">
+                      {rules.map((r) => (
+                        <PasswordRule key={r.label} met={r.met} label={r.label} />
+                      ))}
+                    </ul>
+                  )}
+                  {errors.password && !passwordValue && (
                     <p className="flex items-center gap-1.5 text-xs text-red-500">
                       <AlertCircle size={12} />
                       {errors.password.message}
@@ -164,17 +193,17 @@ export default function Login() {
                   {isSubmitting ? (
                     <>
                       <Loader2 size={15} className="animate-spin" />
-                      Signing in…
+                      Creating account…
                     </>
                   ) : (
-                    'Sign in'
+                    'Create account'
                   )}
                 </button>
               </form>
             </div>
           </div>
           <p className="text-center mt-6 text-xs text-stone-400">
-            By signing in, you agree to our{' '}
+            By creating an account, you agree to our{' '}
             <Link to="/terms" className="underline hover:text-stone-600">Terms</Link>{' '}
             and{' '}
             <Link to="/privacy" className="underline hover:text-stone-600">Privacy Policy</Link>.

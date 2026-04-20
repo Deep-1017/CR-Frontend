@@ -11,9 +11,28 @@ export interface PaymentCartItem {
   price: number;
 }
 
+export interface CheckoutCustomer {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  address: string;
+  city: string;
+  state?: string;
+  zipCode: string;
+}
+
+export interface CheckoutPricing {
+  subtotal: number;
+  tax: number;
+  shipping: number;
+  total: number;
+}
+
 export interface CreatePaymentOrderPayload {
+  customer: CheckoutCustomer;
   cartItems: PaymentCartItem[];
-  totalAmount: number;
+  pricing: CheckoutPricing;
   currency?: "INR";
 }
 
@@ -197,21 +216,23 @@ const loadRazorpayScript = async (): Promise<void> => {
 };
 
 export const createPaymentOrder = async (
+  customer: CheckoutCustomer,
   cartItems: PaymentCartItem[],
-  totalAmount: number
+  pricing: CheckoutPricing
 ): Promise<CreatePaymentOrderResponse> => {
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
     throw new Error("Your cart is empty. Add items before checkout.");
   }
 
-  if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+  if (!Number.isFinite(pricing.total) || pricing.total <= 0) {
     throw new Error("Invalid payment amount. Please refresh and try again.");
   }
 
   try {
     const payload: CreatePaymentOrderPayload = {
+      customer,
       cartItems,
-      totalAmount,
+      pricing,
       currency: "INR",
     };
 
@@ -273,7 +294,7 @@ export const verifyPaymentWebhook = async (
 
 export const useCreatePayment = () => {
   const mutation = useMutation<CreatePaymentOrderResponse, Error, CreatePaymentOrderPayload>({
-    mutationFn: ({ cartItems, totalAmount }) => createPaymentOrder(cartItems, totalAmount),
+    mutationFn: ({ customer, cartItems, pricing }) => createPaymentOrder(customer, cartItems, pricing),
   });
 
   return {

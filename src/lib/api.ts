@@ -1,9 +1,15 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+const normalizeApiBaseUrl = (rawUrl?: string) => {
+    const cleaned = (rawUrl || 'http://localhost:5000').replace(/\/+$/, '');
+    return cleaned.includes('/api') ? cleaned : `${cleaned}/api`;
+};
+
+const API_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
 
 const api = axios.create({
     baseURL: API_URL,
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -11,13 +17,39 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
-        const token = window.localStorage.getItem('authToken') ?? window.localStorage.getItem('token');
+        const token =
+            window.localStorage.getItem('auth_token') ??
+            window.localStorage.getItem('authToken') ??
+            window.localStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
     }
     return config;
 });
+
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (typeof window !== 'undefined' && error.response?.status === 401) {
+            window.localStorage.removeItem('auth_token');
+            window.localStorage.removeItem('authToken');
+            window.localStorage.removeItem('token');
+
+            const isAuthPage =
+                window.location.pathname.includes('/login') ||
+                window.location.pathname.includes('/register') ||
+                window.location.pathname.includes('/forgot-password') ||
+                window.location.pathname.includes('/reset-password');
+
+            if (!isAuthPage) {
+                window.location.href = '/login?session=expired';
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 export const getProducts = async () => {
     const response = await api.get('/products');
