@@ -47,6 +47,16 @@ const CartSidebar = () => {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold truncate">{item.name}</h3>
                       <p className="text-sm text-muted-foreground">{item.category}</p>
+                      {(item.configuration || item.finish) && (
+                        <p className="text-xs text-muted-foreground">
+                          {[item.finish, item.configuration].filter(Boolean).join(" / ")}
+                        </p>
+                      )}
+                      {item.sku && (
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          SKU: {item.sku}
+                        </p>
+                      )}
                       <p className="font-bold mt-1">{formatINR(item.price)}</p>
                       
                       <div className="flex items-center gap-2 mt-2">
@@ -87,6 +97,16 @@ const CartSidebar = () => {
                 </div>
                 <Button className="w-full" size="lg" onClick={handleCheckout}>
                   Proceed to Checkout
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    navigate("/cart");
+                  }}
+                >
+                  View Full Cart
                 </Button>
                 <Button
                   variant="outline"

@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +76,14 @@ const CheckoutContent = () => {
     shipping: 0,
     total: Number((totalPrice * 1.1).toFixed(2)),
   };
+  const itemsMissingVariant = items.filter(
+    (item) => !item.productId || !item.variantId || !item.configuration || !item.finish
+  );
+  const hasInvalidCartItems = itemsMissingVariant.length > 0;
+  const resetInvalidCart = () => {
+    clearCart();
+    navigate("/shop");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +122,15 @@ const CheckoutContent = () => {
       return;
     }
 
+    if (hasInvalidCartItems) {
+      toast({
+        title: "Variant selection required",
+        description: "Remove older cart items and add them again after choosing a finish and configuration.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsProcessingPayment(true);
       paymentFinalizedRef.current = false;
@@ -126,7 +145,10 @@ const CheckoutContent = () => {
         zipCode: formData.zipCode.trim(),
       };
       const cartItems = items.map((item) => ({
-        productId: item.id,
+        productId: item.productId as string,
+        variantId: item.variantId as string,
+        configuration: item.configuration as string,
+        finish: item.finish as string,
         quantity: item.quantity,
         price: item.price,
       }));
@@ -215,6 +237,27 @@ const CheckoutContent = () => {
         <form onSubmit={handleSubmit} noValidate>
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
+              {hasInvalidCartItems && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Variant selection required</AlertTitle>
+                  <AlertDescription>
+                    <p>
+                      {itemsMissingVariant.map((item) => item.name).join(", ")} must be added again from the product page after selecting a finish and configuration.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 border-red-200 bg-white text-red-700 hover:bg-red-50"
+                      onClick={resetInvalidCart}
+                    >
+                      Clear cart and choose variants
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {/* Shipping Information */}
               <Card>
                 <CardHeader>
@@ -386,6 +429,11 @@ const CheckoutContent = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">{item.name}</p>
+                        {(item.configuration || item.finish) && (
+                          <p className="text-xs text-muted-foreground">
+                            {[item.finish, item.configuration].filter(Boolean).join(" / ")}
+                          </p>
+                        )}
                         <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
                         <p className="font-semibold">{formatINR(item.price * item.quantity)}</p>
                       </div>
@@ -411,8 +459,17 @@ const CheckoutContent = () => {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full" size="lg" disabled={isProcessingPayment}>
-                    {isProcessingPayment ? "Processing..." : "Place Order"}
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    size="lg"
+                    disabled={isProcessingPayment || hasInvalidCartItems}
+                  >
+                    {hasInvalidCartItems
+                      ? "Update Cart Items"
+                      : isProcessingPayment
+                        ? "Processing..."
+                        : "Place Order"}
                   </Button>
                 </CardContent>
               </Card>

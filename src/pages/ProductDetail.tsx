@@ -1,14 +1,180 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Heart, Minus, Plus, ChevronRight, Tag, Award } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { Award, ChevronRight, Heart, Minus, Plus, Tag } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import Footer from "@/components/Footer";
+import Header from "@/components/Header";
+import VariantSelector, { type ProductVariant } from "@/components/VariantSelector";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { getProductById, getProducts } from "@/lib/api";
 import { formatINR } from "@/lib/utils";
 
+interface ProductReview {
+  id: string;
+  author: string;
+  rating: number;
+  date: string;
+  comment: string;
+}
+
+interface ProductSpecification {
+  label: string;
+  value: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  category: string;
+  brand: string;
+  price: number;
+  basePrice?: number;
+  originalPrice?: number;
+  onSale?: boolean;
+  image: string;
+  images?: string[];
+  description: string;
+  inStock?: boolean;
+  stockCount?: number;
+  variants?: ProductVariant[];
+  specifications?: ProductSpecification[];
+  customerReviews?: ProductReview[];
+  variantSourceCount?: number;
+  invalidVariantCount?: number;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const readString = (value: unknown): string | undefined =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+
+const readNumber = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  return undefined;
+};
+
+const readStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.flatMap((item) => (typeof item === "string" && item.trim() ? [item.trim()] : [])) : [];
+
+const normalizeVariant = (value: unknown): ProductVariant | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const configuration = readString(value.configuration);
+  const finish = readString(value.finish);
+  const sku = readString(value.sku);
+  const stock = readNumber(value.stock) ?? 0;
+
+  if (!configuration || !finish || !sku) {
+    return null;
+  }
+
+  const normalized: ProductVariant = {
+    configuration,
+    finish,
+    stock: Math.max(0, stock),
+    sku,
+  };
+
+  const variantId = readString(value.variantId) ?? readString(value._id);
+  const price = readNumber(value.price);
+  const images = readStringArray(value.images);
+
+  if (variantId) {
+    normalized.variantId = variantId;
+  }
+
+  if (price !== undefined) {
+    normalized.price = price;
+  }
+
+  if (images.length > 0) {
+    normalized.images = images;
+  }
+
+  return normalized;
+};
+
+const normalizeProduct = (raw: unknown, fallbackId: string): Product => {
+  const source = isRecord(raw) && isRecord(raw.product) ? raw.product : raw;
+  const product = isRecord(source) ? source : {};
+
+  const variantEntries = Array.isArray(product.variants) ? product.variants : [];
+  const variants = variantEntries
+    .map((variant) => normalizeVariant(variant))
+    .filter((variant): variant is ProductVariant => Boolean(variant));
+
+  const images = readStringArray(product.images);
+  const image = images[0] ?? readString(product.image) ?? "/placeholder.svg";
+  const specifications = Array.isArray(product.specifications)
+    ? product.specifications.flatMap((spec) => {
+        if (!isRecord(spec)) {
+          return [];
+        }
+
+        const label = readString(spec.label);
+        const value = readString(spec.value);
+        return label && value ? [{ label, value }] : [];
+      })
+    : [];
+  const customerReviews = Array.isArray(product.customerReviews)
+    ? product.customerReviews.flatMap((review) => {
+        if (!isRecord(review)) {
+          return [];
+        }
+
+        const id = readString(review.id);
+        const author = readString(review.author);
+        const rating = readNumber(review.rating);
+        const date = readString(review.date);
+        const comment = readString(review.comment);
+
+        return id && author && rating !== undefined && date && comment
+          ? [{ id, author, rating, date, comment }]
+          : [];
+      })
+    : [];
+
+  return {
+    id: readString(product.id) ?? readString(product._id) ?? fallbackId,
+    name: readString(product.name) ?? "Unnamed product",
+    category: readString(product.category) ?? "Instruments",
+    brand: readString(product.brand) ?? "Unknown brand",
+    price: readNumber(product.price) ?? readNumber(product.basePrice) ?? 0,
+    basePrice: readNumber(product.basePrice),
+    originalPrice: readNumber(product.originalPrice),
+    onSale: Boolean(product.onSale),
+    image,
+    images: images.length > 0 ? images : [image],
+    description: readString(product.description) ?? "",
+    inStock: typeof product.inStock === "boolean" ? product.inStock : undefined,
+    stockCount: readNumber(product.stockCount),
+    variants,
+    specifications,
+    customerReviews,
+    variantSourceCount: variantEntries.length,
+    invalidVariantCount: Math.max(0, variantEntries.length - variants.length),
+  };
+};
+
+const getVariantId = (variant: ProductVariant): string =>
+  variant.variantId ?? variant._id ?? variant.sku;
+
+const getBasePrice = (product: Product): number => product.basePrice ?? product.price;
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -17,67 +183,147 @@ const ProductDetail = () => {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [selectedConfiguration, setSelectedConfiguration] = useState<string | null>(null);
+  const [selectedFinish, setSelectedFinish] = useState<string | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+
+  const productQuery = useQuery<Product>({
+    queryKey: ["product", id],
+    queryFn: async () => normalizeProduct(await getProductById(id as string), id as string),
+    enabled: Boolean(id),
+    retry: false,
+  });
+
+  const product = productQuery.data;
+
+  const relatedQuery = useQuery<Product[]>({
+    queryKey: ["related-products", product?.category, product?.id],
+    queryFn: async () => {
+      const allProducts = (await getProducts()) as Product[];
+      return allProducts
+        .filter((candidate) => candidate.category === product?.category && candidate.id !== product?.id)
+        .slice(0, 4);
+    },
+    enabled: Boolean(product?.category && product?.id),
+  });
+
+  const variants = useMemo(() => product?.variants ?? [], [product?.variants]);
+  const selectedVariantImages = selectedVariant?.images?.filter(Boolean) ?? [];
+  const productImages = product?.images?.filter(Boolean) ?? [];
+  const images =
+    selectedVariantImages.length > 0
+      ? selectedVariantImages
+      : productImages.length > 0
+        ? productImages
+        : product?.image
+          ? [product.image]
+          : [];
+  const hasSelectableVariants = variants.length > 0;
+  const isSelectionComplete = Boolean(selectedConfiguration && selectedFinish);
+  const addDisabled =
+    !hasSelectableVariants ||
+    !isSelectionComplete ||
+    !selectedVariant ||
+    selectedVariant.stock <= 0 ||
+    quantity > selectedVariant.stock;
+  const inWishlist = product ? isInWishlist(product.id) : false;
+  const productError = productQuery.error as AxiosError<{ message?: string }> | null;
+  const isNotFound = productError?.response?.status === 404;
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const data = await getProductById(id);
-        setProduct(data);
-        setSelectedImage(0);
+    setSelectedConfiguration(null);
+    setSelectedFinish(null);
+    setSelectedVariant(null);
+    setSelectedImage(0);
+    setQuantity(1);
+  }, [product?.id]);
 
-        const allProducts = await getProducts();
-        const related = allProducts.filter(
-          (p: any) => p.category === data.category && p.id !== data.id
-        ).slice(0, 4);
-        setRelatedProducts(related);
-      } catch (error) {
-        console.error("Failed to fetch product:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useEffect(() => {
+    if (!selectedConfiguration || !selectedFinish) {
+      setSelectedVariant(null);
+      return;
+    }
 
-    fetchProduct();
-  }, [id]);
+    const matchedVariant =
+      variants.find(
+        (variant) =>
+          variant.configuration === selectedConfiguration && variant.finish === selectedFinish
+      ) ?? null;
 
-  if (loading) {
+    setSelectedVariant(matchedVariant);
+  }, [selectedConfiguration, selectedFinish, variants]);
+
+  useEffect(() => {
+    setSelectedImage(0);
+    setQuantity(1);
+  }, [selectedVariant]);
+
+  if (productQuery.isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white" aria-busy="true">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" />
-          <p className="text-gray-500 text-sm" style={{ fontFamily: "'Inter', sans-serif" }}>Loading instrument...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
+          <p className="text-sm text-gray-500">Loading instrument...</p>
         </div>
       </div>
     );
   }
 
-  if (!product) {
+  if (productQuery.isError || !product) {
     return (
       <div className="min-h-screen bg-white">
         <Header />
-        <div className="container mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold mb-4" style={{ fontFamily: "'Playfair Display', serif" }}>Instrument not found</h1>
-          <Button onClick={() => navigate("/shop")} className="bg-gray-900 text-white hover:bg-gray-800 rounded-full px-8">
-            Back to Shop
-          </Button>
+        <div className="container mx-auto px-4 py-20">
+          <div className="mx-auto max-w-xl">
+            <Alert variant="destructive">
+              <AlertTitle>{isNotFound ? "Product not found" : "Unable to load product"}</AlertTitle>
+              <AlertDescription>
+                {isNotFound
+                  ? "This product may have been removed or is no longer available."
+                  : "We couldn't load this product right now. Please try again in a moment."}
+              </AlertDescription>
+            </Alert>
+            <div className="mt-6 text-center">
+              <Button
+                onClick={() => navigate("/shop")}
+                className="rounded-full bg-gray-900 px-8 text-white hover:bg-gray-800"
+              >
+                Back to Shop
+              </Button>
+            </div>
+          </div>
         </div>
         <Footer />
       </div>
     );
   }
 
+  const handleConfigurationChange = (configuration: string) => {
+    setSelectedConfiguration(configuration);
+  };
+
+  const handleFinishChange = (finish: string) => {
+    setSelectedFinish(finish);
+  };
+
   const handleAddToCart = () => {
-    for (let i = 0; i < quantity; i++) {
+    if (!selectedVariant || !selectedConfiguration || !selectedFinish) {
+      return;
+    }
+
+    const variantId = getVariantId(selectedVariant);
+
+    for (let i = 0; i < quantity; i += 1) {
       addToCart({
-        id: product.id,
+        id: `${product.id}:${variantId}`,
+        productId: product.id,
+        variantId,
+        configuration: selectedVariant.configuration,
+        finish: selectedVariant.finish,
+        sku: selectedVariant.sku,
         name: product.name,
-        price: product.price,
-        image: product.image,
+        price: selectedVariant.price ?? product.price,
+        image: images[selectedImage] || product.image,
         category: product.category,
       });
     }
@@ -95,240 +341,223 @@ const ProductDetail = () => {
     });
   };
 
-  const inWishlist = isInWishlist(product.id);
-
-  const images = (product.images && product.images.length > 0)
-    ? product.images
-    : product.image
-      ? [product.image]
-      : [];
+  const hasVariantDataIssue = (product.variantSourceCount ?? 0) > 0 && variants.length === 0;
+  const hasIgnoredVariantEntries = (product.invalidVariantCount ?? 0) > 0;
 
   return (
     <div className="min-h-screen bg-white">
       <Header />
 
-      <main className="container mx-auto px-4 md:px-8 py-6 md:py-10">
-        {/* Breadcrumbs */}
-        <nav className="flex items-center gap-1.5 text-sm text-gray-400 mb-8" style={{ fontFamily: "'Inter', sans-serif" }}>
-          <button onClick={() => navigate("/")} className="hover:text-gray-700 transition-colors">
+      <main className="container mx-auto px-4 py-6 md:px-8 md:py-10">
+        <nav className="mb-8 flex items-center gap-1.5 text-sm text-gray-400">
+          <button onClick={() => navigate("/")} className="transition-colors hover:text-gray-700">
             Home
           </button>
-          <ChevronRight className="w-3.5 h-3.5" />
-          <button onClick={() => navigate("/shop")} className="hover:text-gray-700 transition-colors">
+          <ChevronRight className="h-3.5 w-3.5" />
+          <button onClick={() => navigate("/shop")} className="transition-colors hover:text-gray-700">
             Instruments
           </button>
-          <ChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight className="h-3.5 w-3.5" />
           <span className="text-gray-700">{product.name}</span>
         </nav>
 
-        <div className="grid lg:grid-cols-2 gap-8 md:gap-12 mb-16">
-          {/* Image Gallery */}
+        <div className="mb-16 grid gap-8 md:gap-12 lg:grid-cols-2">
           <div>
-            {/* Main Image */}
-            <div className="aspect-[4/5] bg-gray-50 rounded-lg overflow-hidden mb-4">
+            <div className="mb-4 aspect-[4/5] overflow-hidden rounded-lg bg-gray-50">
               <img
                 src={images[selectedImage] || "/placeholder.svg"}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="h-full w-full object-cover"
               />
             </div>
-            {/* Thumbnail Grid */}
-            <div className="grid grid-cols-6 gap-2">
-              {images.map((img: string, idx: number) => (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedImage(idx)}
-                  className={`aspect-square bg-gray-50 rounded overflow-hidden border-2 transition-colors ${
-                    selectedImage === idx ? "border-gray-900" : "border-transparent hover:border-gray-300"
-                  }`}
-                >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
+
+            {images.length > 1 && (
+              <div className="grid grid-cols-6 gap-2">
+                {images.map((img, idx) => (
+                  <button
+                    key={`${img}-${idx}`}
+                    onClick={() => setSelectedImage(idx)}
+                    className={`aspect-square overflow-hidden rounded border-2 bg-gray-50 transition-colors ${
+                      selectedImage === idx ? "border-gray-900" : "border-transparent hover:border-gray-300"
+                    }`}
+                  >
+                    <img src={img} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Product Info */}
           <div className="pt-2">
-            {/* Brand & Category */}
-            <div className="flex items-center gap-2 mb-3 flex-wrap">
-              <span className="inline-flex items-center gap-1 px-3 py-1 bg-gray-900 text-white text-xs font-semibold rounded-full"
-                    style={{ fontFamily: "'Inter', sans-serif" }}>
-                <Award className="w-3 h-3" />
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-900 px-3 py-1 text-xs font-semibold text-white">
+                <Award className="h-3 w-3" />
                 {product.brand}
               </span>
             </div>
 
-            {/* Product Title */}
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1"
-                style={{ fontFamily: "'Playfair Display', serif" }}>
-              {product.name}
-            </h1>
-            <p className="text-sm text-gray-500 mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-              {product.category}
-            </p>
+            <h1 className="mb-1 text-2xl font-bold text-gray-900 md:text-3xl">{product.name}</h1>
+            <p className="mb-4 text-sm text-gray-500">{product.category}</p>
 
-            {/* Price */}
-            <div className="flex items-center gap-3 mb-8">
-              <span className="text-xl text-gray-900 font-semibold" style={{ fontFamily: "'Inter', sans-serif" }}>
-                {formatINR(product.price)}
-              </span>
+            <div className="mb-8 flex items-center gap-3">
+              <span className="text-xl font-semibold text-gray-900">{formatINR(selectedVariant?.price ?? product.price)}</span>
               {product.originalPrice && (
-                <span className="text-base text-gray-400 line-through" style={{ fontFamily: "'Inter', sans-serif" }}>
+                <span className="text-base text-gray-400 line-through">
                   {formatINR(product.originalPrice)}
                 </span>
               )}
               {product.onSale && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full uppercase"
-                      style={{ fontFamily: "'Inter', sans-serif" }}>
-                  <Tag className="w-3 h-3" /> Sale
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-500 px-2.5 py-1 text-[10px] font-bold uppercase text-white">
+                  <Tag className="h-3 w-3" /> Sale
                 </span>
               )}
             </div>
 
-            {/* In Stock Indicator */}
-            {product.inStock !== undefined && (
-              <div className="mb-6">
-                <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${product.inStock ? 'text-green-600' : 'text-red-500'}`}
-                      style={{ fontFamily: "'Inter', sans-serif" }}>
-                  <span className={`w-2 h-2 rounded-full ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`} />
-                  {product.inStock ? `In Stock${product.stockCount ? ` (${product.stockCount} available)` : ''}` : 'Out of Stock'}
-                </span>
-              </div>
+            {(hasIgnoredVariantEntries || hasVariantDataIssue) && (
+              <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-900">
+                <AlertTitle>Variant data issue</AlertTitle>
+                <AlertDescription>
+                  {hasVariantDataIssue
+                    ? "This product was returned without usable variant data, so configuration selection is unavailable."
+                    : "Some incomplete variant records were ignored so the page can still load safely."}
+                </AlertDescription>
+              </Alert>
             )}
 
-            {/* Quantity */}
+            <VariantSelector
+              variants={variants}
+              basePrice={getBasePrice(product)}
+              selectedConfiguration={selectedConfiguration}
+              selectedFinish={selectedFinish}
+              selectedVariant={selectedVariant}
+              onConfigurationChange={handleConfigurationChange}
+              onFinishChange={handleFinishChange}
+            />
+
             <div className="mb-8">
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 tracking-wide uppercase"
-                  style={{ fontFamily: "'Inter', sans-serif" }}>
-                QUANTITY
+              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-900">
+                Quantity
               </h3>
-              <div className="flex items-center w-full max-w-[200px] border border-gray-300 rounded-full overflow-hidden h-12">
+              <div className="flex h-12 w-full max-w-[200px] items-center overflow-hidden rounded-full border border-gray-300">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="flex-1 h-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  className="flex h-full flex-1 items-center justify-center transition-colors hover:bg-gray-50"
                 >
-                  <Minus className="w-4 h-4 text-gray-600" />
+                  <Minus className="h-4 w-4 text-gray-600" />
                 </button>
-                <span className="flex-1 text-center font-medium text-gray-900 text-sm"
-                      style={{ fontFamily: "'Inter', sans-serif" }}>
-                  {quantity}
-                </span>
+                <span className="flex-1 text-center text-sm font-medium text-gray-900">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="flex-1 h-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  onClick={() => {
+                    const maxQuantity = selectedVariant?.stock ?? Number.POSITIVE_INFINITY;
+                    setQuantity(Math.min(maxQuantity, quantity + 1));
+                  }}
+                  disabled={selectedVariant?.stock !== undefined && quantity >= selectedVariant.stock}
+                  className="flex h-full flex-1 items-center justify-center transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <Plus className="w-4 h-4 text-gray-600" />
+                  <Plus className="h-4 w-4 text-gray-600" />
                 </button>
               </div>
             </div>
 
-            {/* Add to Cart + Wishlist */}
-            <div className="flex items-center gap-3 mb-10">
-              {/* Wishlist Button */}
+            <div className="mb-10 flex items-center gap-3">
               <button
                 onClick={handleToggleWishlist}
-                className={`w-12 h-12 rounded-full border flex items-center justify-center transition-all ${
+                className={`flex h-12 w-12 items-center justify-center rounded-full border transition-all ${
                   inWishlist
-                    ? 'border-gray-900 bg-gray-900 text-white'
-                    : 'border-gray-300 text-gray-600 hover:border-gray-500'
+                    ? "border-gray-900 bg-gray-900 text-white"
+                    : "border-gray-300 text-gray-600 hover:border-gray-500"
                 }`}
               >
-                <Heart className={`w-5 h-5 ${inWishlist ? 'fill-white' : ''}`} />
+                <Heart className={`h-5 w-5 ${inWishlist ? "fill-white" : ""}`} />
               </button>
 
-              {/* Add to Cart */}
               <Button
                 onClick={handleAddToCart}
-                className="flex-1 h-12 bg-gray-900 text-white hover:bg-gray-800 rounded-full text-sm font-semibold transition-all"
-                style={{ fontFamily: "'Inter', sans-serif" }}
-                disabled={product.inStock === false}
+                className="h-12 flex-1 rounded-full bg-gray-900 text-sm font-semibold text-white transition-all hover:bg-gray-800"
+                disabled={addDisabled}
               >
-                {product.inStock === false ? 'Out of Stock' : 'Add to Cart'}
+                {!hasSelectableVariants
+                  ? "Unavailable"
+                  : !isSelectionComplete
+                    ? "Select Configuration and Finish"
+                    : selectedVariant?.stock === 0
+                      ? "Out of Stock"
+                      : "Add to Cart"}
               </Button>
             </div>
 
-            {/* Specifications Table */}
             {product.specifications && product.specifications.length > 0 && (
-              <div className="border-t border-gray-200 pt-6 mb-6">
-                <h3 className="text-sm font-bold text-gray-900 mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-                  Specifications
-                </h3>
+              <div className="mb-6 border-t border-gray-200 pt-6">
+                <h3 className="mb-4 text-sm font-bold text-gray-900">Specifications</h3>
                 <div className="divide-y divide-gray-100">
-                  {product.specifications.map((spec: { label: string; value: string }, idx: number) => (
-                    <div key={idx} className="flex justify-between py-2.5">
-                      <span className="text-sm text-gray-500" style={{ fontFamily: "'Inter', sans-serif" }}>{spec.label}</span>
-                      <span className="text-sm font-medium text-gray-900" style={{ fontFamily: "'Inter', sans-serif" }}>{spec.value}</span>
+                  {product.specifications.map((spec) => (
+                    <div key={`${spec.label}-${spec.value}`} className="flex justify-between py-2.5">
+                      <span className="text-sm text-gray-500">{spec.label}</span>
+                      <span className="text-sm font-medium text-gray-900">{spec.value}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Product Description */}
             <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-sm font-bold text-gray-900 mb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-                Description
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>
-                {product.description}
-              </p>
+              <h3 className="mb-4 text-sm font-bold text-gray-900">Description</h3>
+              <p className="text-sm leading-relaxed text-gray-600">{product.description}</p>
             </div>
           </div>
         </div>
 
-        {/* Customer Reviews */}
         {product.customerReviews && product.customerReviews.length > 0 && (
-          <div className="border-t border-gray-200 pt-10 mb-16">
-            <h2 className="text-xl font-bold text-gray-900 mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
-              Customer Reviews
-            </h2>
+          <div className="mb-16 border-t border-gray-200 pt-10">
+            <h2 className="mb-6 text-xl font-bold text-gray-900">Customer Reviews</h2>
             <div className="grid gap-4 md:grid-cols-2">
-              {product.customerReviews.map((review: any) => (
-                <div key={review.id} className="p-5 bg-gray-50 rounded-xl">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-9 h-9 rounded-full bg-gray-800 text-white flex items-center justify-center text-sm font-semibold">
+              {product.customerReviews.map((review) => (
+                <div key={review.id} className="rounded-lg bg-gray-50 p-5">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 text-sm font-semibold text-white">
                       {review.author[0]}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-gray-900" style={{ fontFamily: "'Inter', sans-serif" }}>{review.author}</p>
-                      <p className="text-xs text-gray-400" style={{ fontFamily: "'Inter', sans-serif" }}>{review.date}</p>
+                      <p className="text-sm font-semibold text-gray-900">{review.author}</p>
+                      <p className="text-xs text-gray-400">{review.date}</p>
                     </div>
                     <div className="ml-auto flex items-center gap-0.5">
                       {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`text-sm ${i < review.rating ? 'text-yellow-400' : 'text-gray-200'}`}>★</span>
+                        <span
+                          key={i}
+                          className={`text-sm ${i < review.rating ? "text-yellow-400" : "text-gray-200"}`}
+                        >
+                          *
+                        </span>
                       ))}
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 leading-relaxed" style={{ fontFamily: "'Inter', sans-serif" }}>{review.comment}</p>
+                  <p className="text-sm leading-relaxed text-gray-600">{review.comment}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Related Products */}
-        {relatedProducts.length > 0 && (
+        {relatedQuery.data && relatedQuery.data.length > 0 && (
           <div className="border-t border-gray-200 pt-10">
-            <h2 className="text-xl font-bold text-gray-900 mb-6" style={{ fontFamily: "'Playfair Display', serif" }}>
-              More in {product.category}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {relatedProducts.map((related) => (
+            <h2 className="mb-6 text-xl font-bold text-gray-900">More in {product.category}</h2>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {relatedQuery.data.map((related) => (
                 <div
                   key={related.id}
-                  className="cursor-pointer group"
+                  className="group cursor-pointer"
                   onClick={() => navigate(`/product/${related.id}`)}
                 >
-                  <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden mb-2">
+                  <div className="mb-2 aspect-square overflow-hidden rounded-lg bg-gray-50">
                     <img
                       src={related.image}
                       alt={related.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   </div>
-                  <p className="text-sm font-semibold text-gray-900 truncate" style={{ fontFamily: "'Inter', sans-serif" }}>{related.name}</p>
-                  <p className="text-xs text-gray-500" style={{ fontFamily: "'Inter', sans-serif" }}>{formatINR(related.price)}</p>
+                  <p className="truncate text-sm font-semibold text-gray-900">{related.name}</p>
+                  <p className="text-xs text-gray-500">{formatINR(related.price)}</p>
                 </div>
               ))}
             </div>

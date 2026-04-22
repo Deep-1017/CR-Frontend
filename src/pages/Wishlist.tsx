@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { Heart, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useWishlist } from "@/contexts/WishlistContext";
-import { useCart } from "@/contexts/CartContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { formatINR } from "@/lib/utils";
@@ -10,16 +9,9 @@ import { formatINR } from "@/lib/utils";
 const Wishlist = () => {
   const navigate = useNavigate();
   const { items, removeFromWishlist } = useWishlist();
-  const { addToCart } = useCart();
 
-  const handleAddToCart = (item: any) => {
-    addToCart({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      image: item.image,
-      category: item.category,
-    });
+  const handleAddToCart = (item: { id: string }) => {
+    navigate(`/product/${item.id}`);
   };
 
   return (
@@ -91,7 +83,7 @@ const Wishlist = () => {
                     onClick={() => handleAddToCart(item)}
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart
+                    Choose Options
                   </Button>
                 </div>
               </div>

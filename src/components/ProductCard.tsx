@@ -2,7 +2,6 @@
 
 import React from "react"
 import { ShoppingBag, Award } from "lucide-react";
-import { useCart } from "@/contexts/CartContext";
 import { formatINR } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -28,12 +27,11 @@ const ProductCard = ({
   onSale,
   brand,
 }: ProductCardProps) => {
-  const { addToCart } = useCart();
   const navigate = useNavigate();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart({ id, name, price, image, category });
+    navigate(`/product/${id}`);
   };
 
   return (
@@ -90,6 +88,7 @@ const ProductCard = ({
         </div>
         <button
           onClick={handleAddToCart}
+          title="Choose options"
           className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors mt-0.5 flex-shrink-0 ml-2"
         >
           <ShoppingBag className="w-3.5 h-3.5 text-gray-700" />

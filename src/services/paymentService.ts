@@ -7,6 +7,9 @@ const RAZORPAY_SCRIPT_ID = "razorpay-checkout-sdk";
 
 export interface PaymentCartItem {
   productId: string;
+  variantId: string;
+  configuration: string;
+  finish: string;
   quantity: number;
   price: number;
 }

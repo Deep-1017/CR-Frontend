@@ -84,25 +84,82 @@ const FEATURED_BRANDS = [
   "Nlabs",
 ];
 
+type ShopProduct = {
+  id: string;
+  _id?: string;
+  name: string;
+  category: string;
+  price: number;
+  basePrice?: number;
+  originalPrice?: number;
+  onSale?: boolean;
+  image: string;
+  brand?: string;
+  createdAt?: string;
+  reviews?: number;
+};
+
+const readString = (value: unknown): string | undefined =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+
+const readStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.flatMap((item) =>
+        typeof item === "string" && item.trim().length > 0 ? [item.trim()] : [],
+      )
+    : [];
+
+const normalizeProduct = (product: unknown): ShopProduct | null => {
+  if (!product || typeof product !== "object") {
+    return null;
+  }
+
+  const source = product as Record<string, unknown>;
+  const id = typeof source.id === "string" && source.id.trim()
+    ? source.id.trim()
+    : typeof source._id === "string" && source._id.trim()
+      ? source._id.trim()
+      : undefined;
+
+  const name = readString(source.name);
+  const category = readString(source.category);
+  const images = readStringArray(source.images);
+  const image = images[0] ?? readString(source.image) ?? "/placeholder.svg";
+  const priceValue = Number(source.price ?? source.basePrice ?? 0);
+
+  if (!id || !name || !category || !Number.isFinite(priceValue)) {
+    return null;
+  }
+
+  return {
+    id,
+    _id: typeof source._id === "string" ? source._id : undefined,
+    name,
+    category,
+    price: priceValue,
+    basePrice: typeof source.basePrice === "number" ? source.basePrice : undefined,
+    originalPrice: typeof source.originalPrice === "number" ? source.originalPrice : undefined,
+    onSale: typeof source.onSale === "boolean" ? source.onSale : undefined,
+    image,
+    brand: typeof source.brand === "string" ? source.brand : undefined,
+    createdAt: typeof source.createdAt === "string" ? source.createdAt : undefined,
+    reviews: typeof source.reviews === "number" ? source.reviews : undefined,
+  };
+};
+
 const Shop = () => {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [priceRange, setPriceRange] = useState([0, 5000]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("featured");
+  const DEFAULT_MIN_PRICE = 0;
+  const DEFAULT_MAX_PRICE = 5000;
 
   const getCategoryChildren = (category: string) =>
     CATEGORY_TREE.find((node) => node.label === category)?.children ?? [];
-
-  const expandSelectedCategories = (selected: string[]) => {
-    const set = new Set(selected);
-    selected.forEach((cat) => {
-      getCategoryChildren(cat).forEach((child) => set.add(child));
-    });
-    return set;
-  };
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) => {
@@ -122,7 +179,7 @@ const Shop = () => {
     const fetchProducts = async () => {
       try {
         const data = await getProducts();
-        setProducts(data);
+        setProducts(data.map(normalizeProduct).filter((product): product is ShopProduct => Boolean(product)));
       } catch (error) {
         console.error("Failed to fetch products:", error);
       } finally {
@@ -138,7 +195,34 @@ const Shop = () => {
     new Set([...FEATURED_BRANDS, ...products.map((p) => p.brand)]),
   );
 
+  const maxProductPrice = useMemo(() => {
+    const highestPrice = products.reduce((max, product) => {
+      const productPrice = Number(product.price ?? product.basePrice ?? 0);
+      return Number.isFinite(productPrice) ? Math.max(max, productPrice) : max;
+    }, DEFAULT_MAX_PRICE);
+
+    return Math.max(DEFAULT_MAX_PRICE, highestPrice);
+  }, [products]);
+
+  useEffect(() => {
+    setPriceRange((current) => {
+      if (current[1] !== DEFAULT_MAX_PRICE) {
+        return current;
+      }
+
+      return [DEFAULT_MIN_PRICE, maxProductPrice];
+    });
+  }, [maxProductPrice]);
+
   const filteredProducts = useMemo(() => {
+    const expandSelectedCategories = (selected: string[]) => {
+      const set = new Set(selected);
+      selected.forEach((cat) => {
+        getCategoryChildren(cat).forEach((child) => set.add(child));
+      });
+      return set;
+    };
+
     const filtered = products.filter((product) => {
       const matchesSearch =
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -201,7 +285,7 @@ const Shop = () => {
 
   const clearAllFilters = () => {
     setSearchQuery("");
-    setPriceRange([0, 5000]);
+    setPriceRange([DEFAULT_MIN_PRICE, maxProductPrice]);
     setSelectedCategories([]);
     setSelectedBrands([]);
   };
@@ -253,8 +337,8 @@ const Shop = () => {
             <div>
               <h3 className="font-semibold mb-3">Price Range</h3>
               <Slider
-                min={0}
-                max={5000}
+                min={DEFAULT_MIN_PRICE}
+                max={maxProductPrice}
                 step={50}
                 value={priceRange}
                 onValueChange={setPriceRange}

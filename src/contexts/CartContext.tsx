@@ -3,6 +3,11 @@ import { toast } from "@/hooks/use-toast";
 
 export interface CartItem {
   id: string;
+  productId?: string;
+  variantId?: string;
+  configuration?: string;
+  finish?: string;
+  sku?: string;
   name: string;
   price: number;
   image: string;
