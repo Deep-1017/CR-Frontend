@@ -56,6 +56,15 @@ const Account = () => {
                 Logout
               </Button>
             </div>
+            <div className="mt-5">
+              <Button
+                variant="outline"
+                className="rounded-full border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                onClick={() => navigate("/account/orders")}
+              >
+                View My Orders
+              </Button>
+            </div>
           </section>
 
           <div className="grid gap-5 md:grid-cols-2">

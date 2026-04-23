@@ -6,6 +6,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from '@/contexts/CartContext';
 import { WishlistProvider } from '@/contexts/WishlistContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { OrderProvider } from './contexts/OrderContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Index from './pages/Index';
 import Shop from './pages/Shop';
@@ -21,6 +22,7 @@ import ResetPassword from './pages/ResetPassword';
 import OAuthCallback from './pages/OAuthCallback';
 import OrderConfirmation from './pages/OrderConfirmation';
 import Account from './pages/Account';
+import AccountOrders from './pages/AccountOrders';
 import CartSidebar from '@/components/CartSidebar';
 
 const queryClient = new QueryClient();
@@ -31,6 +33,7 @@ const App = () => (
       <WishlistProvider>
         <CartProvider>
           <AuthProvider>
+          <OrderProvider>
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
@@ -43,13 +46,15 @@ const App = () => (
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-              <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
+              <Route path="/order-confirmation/:orderId" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
               <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
+              <Route path="/account/orders" element={<ProtectedRoute><AccountOrders /></ProtectedRoute>} />
               <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <CartSidebar />
           </Router>
+          </OrderProvider>
           <SonnerToaster
             position="top-right"
             toastOptions={{

@@ -73,6 +73,12 @@ interface VerifyPaymentPayload {
 
 interface VerifyPaymentResponse {
   message: string;
+  orderId?: string;
+}
+
+interface ResendConfirmationResponse {
+  message: string;
+  confirmationEmailSentAt?: string;
 }
 
 interface RazorpayPrefill {
@@ -289,6 +295,19 @@ export const verifyPaymentWebhook = async (
 ): Promise<VerifyPaymentResponse> => {
   try {
     const response = await api.post<VerifyPaymentResponse>("/payments/verify-webhook", payload);
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
+export const resendOrderConfirmationEmail = async (
+  orderId: string
+): Promise<ResendConfirmationResponse> => {
+  try {
+    const response = await api.post<ResendConfirmationResponse>(
+      `/payments/${orderId}/resend-confirmation`
+    );
     return response.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));

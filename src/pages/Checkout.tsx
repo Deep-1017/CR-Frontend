@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCart } from "@/contexts/CartContext";
+import { useOrder } from "@/contexts/OrderContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { toast } from "@/hooks/use-toast";
 import { formatINR } from "@/lib/utils";
+import { saveLastOrderSnapshot } from "@/lib/lastOrder";
 import {
   createPaymentOrder,
   initiateRazorpayPayment,
@@ -53,6 +54,7 @@ const getCheckoutErrorMessage = (error: unknown): string => {
 
 const CheckoutContent = () => {
   const { items, totalPrice, clearCart } = useCart();
+  const { setConfirmedOrderId } = useOrder();
   const navigate = useNavigate();
   const paymentFinalizedRef = useRef(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
@@ -158,17 +160,25 @@ const CheckoutContent = () => {
         paymentOrder,
         async (response: RazorpaySuccessResponse) => {
           try {
-            await verifyPaymentWebhook({
+            const verificationResponse = await verifyPaymentWebhook({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
 
+            const orderId = verificationResponse.orderId || paymentOrder.orderId;
+
             paymentFinalizedRef.current = true;
-            window.localStorage.removeItem("cart");
+            setConfirmedOrderId(orderId);
+            saveLastOrderSnapshot({
+              orderId,
+              email: customer.email,
+              placedAt: new Date().toISOString(),
+              pricing,
+            });
             clearCart();
-            navigate(`/order-confirmation/${paymentOrder.orderId}`, {
-              state: { orderId: paymentOrder.orderId },
+            navigate(`/order-confirmation/${orderId}?new=true`, {
+              replace: true,
             });
           } catch (error) {
             logPaymentError(error, "verify-webhook");

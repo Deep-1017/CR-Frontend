@@ -2,10 +2,12 @@ import axios from 'axios';
 
 const normalizeApiBaseUrl = (rawUrl?: string) => {
   const cleaned = (rawUrl || 'http://localhost:5000').replace(/\/+$/, '');
-  return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  const normalized = cleaned.endsWith('/api/v1') ? cleaned : `${cleaned}/api/v1`;
+  return normalized;
 };
 
-export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
+const baseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
+export const API_BASE_URL = baseUrl;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -30,7 +32,8 @@ api.interceptors.response.use(
         window.location.pathname.includes('/forgot-password') ||
         window.location.pathname.includes('/reset-password');
       if (!isAuthPage) {
-        window.location.href = '/login?session=expired';
+        const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        window.location.href = `/login?session=expired&redirect=${encodeURIComponent(returnUrl)}`;
       }
     }
     return Promise.reject(error);

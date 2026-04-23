@@ -79,8 +79,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const googleAuthUrl = (() => {
+    const raw = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+    const cleaned = raw.replace(/\/+$/, '');
+    return cleaned.endsWith('/api/v1') ? `${cleaned}/auth/google` : `${cleaned}/api/v1/auth/google`;
+  })();
+
   const loginWithGoogle = () => {
-    window.location.href = `${API_BASE_URL}/auth/google`;
+    window.location.href = googleAuthUrl;
   };
 
   return (
