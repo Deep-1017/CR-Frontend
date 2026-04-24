@@ -23,6 +23,7 @@ import OAuthCallback from './pages/OAuthCallback';
 import OrderConfirmation from './pages/OrderConfirmation';
 import Account from './pages/Account';
 import AccountOrders from './pages/AccountOrders';
+import OrderDetail from './pages/OrderDetail';
 import CartSidebar from '@/components/CartSidebar';
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+              <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
               <Route path="/order-confirmation/:orderId" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
               <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
               <Route path="/account/orders" element={<ProtectedRoute><AccountOrders /></ProtectedRoute>} />
