@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -7,12 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCart } from "@/contexts/CartContext";
 import { useOrder } from "@/contexts/OrderContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { formatINR } from "@/lib/utils";
 import { saveLastOrderSnapshot } from "@/lib/lastOrder";
+import { toast } from "@/hooks/use-toast";
+import { useAddresses } from "@/hooks/useAddresses";
+import type { Address } from "@/services/addressService";
 import {
   createPaymentOrder,
   initiateRazorpayPayment,
@@ -52,12 +56,38 @@ const getCheckoutErrorMessage = (error: unknown): string => {
   return "Unable to process payment. Try again.";
 };
 
+const getMissingFieldLabels = (formData: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}) => {
+  const requiredFields: Array<{ key: keyof typeof formData; label: string }> = [
+    { key: "firstName", label: "First Name" },
+    { key: "lastName", label: "Last Name" },
+    { key: "email", label: "Email" },
+    { key: "address", label: "Address" },
+    { key: "city", label: "City" },
+    { key: "zipCode", label: "ZIP Code" },
+  ];
+
+  return requiredFields
+    .filter(({ key }) => !formData[key].trim())
+    .map(({ label }) => label);
+};
+
 const CheckoutContent = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { setConfirmedOrderId } = useOrder();
   const navigate = useNavigate();
+  const { data: addresses } = useAddresses();
   const paymentFinalizedRef = useRef(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -72,6 +102,52 @@ const CheckoutContent = () => {
     cardExpiry: "",
     cardCvv: "",
   });
+
+  const sortedAddresses = useMemo(() => {
+    if (!addresses) return [];
+    return [...addresses].sort((a, b) => {
+      if (a.isDefault !== b.isDefault) return a.isDefault ? -1 : 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [addresses]);
+
+  const selectedAddress: Address | undefined = useMemo(() => {
+    if (!selectedAddressId) return undefined;
+    return sortedAddresses.find((a) => a._id === selectedAddressId);
+  }, [selectedAddressId, sortedAddresses]);
+
+  const applyAddressToForm = (address: Address) => {
+    const [firstName, ...rest] = address.fullName.trim().split(/\s+/);
+    const lastName = rest.join(" ");
+    const line2 = address.addressLine2?.trim();
+    const joinedAddress = [address.addressLine1, line2 ? line2 : null].filter(Boolean).join(", ");
+    setFormData((prev) => ({
+      ...prev,
+      firstName: firstName ?? prev.firstName,
+      lastName: lastName || prev.lastName,
+      phone: address.phone ?? prev.phone,
+      address: joinedAddress || prev.address,
+      city: address.city ?? prev.city,
+      state: address.state ?? prev.state,
+      zipCode: address.zipCode ?? prev.zipCode,
+    }));
+  };
+
+  useEffect(() => {
+    if (!sortedAddresses.length) return;
+    if (selectedAddressId) return;
+    const defaultAddress = sortedAddresses.find((a) => a.isDefault) ?? sortedAddresses[0];
+    if (!defaultAddress) return;
+    setSelectedAddressId(defaultAddress._id);
+    applyAddressToForm(defaultAddress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortedAddresses, selectedAddressId]);
+
+  useEffect(() => {
+    if (!selectedAddress) return;
+    applyAddressToForm(selectedAddress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAddressId]);
   const pricing: CheckoutPricing = {
     subtotal: Number(totalPrice.toFixed(2)),
     tax: Number((totalPrice * 0.1).toFixed(2)),
@@ -105,20 +181,11 @@ const CheckoutContent = () => {
       return;
     }
 
-    const requiredFields: Array<keyof typeof formData> = [
-      "firstName",
-      "lastName",
-      "email",
-      "address",
-      "city",
-      "zipCode",
-    ];
-    const missingRequiredField = requiredFields.some((field) => !formData[field].trim());
-
-    if (missingRequiredField) {
+    const missingFields = getMissingFieldLabels(formData);
+    if (missingFields.length > 0) {
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields",
+        description: `Some details are remaining to fill: ${missingFields.join(", ")}.`,
         variant: "destructive",
       });
       return;
@@ -274,6 +341,61 @@ const CheckoutContent = () => {
                   <CardTitle>Shipping Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {sortedAddresses.length > 0 && (
+                    <div className="space-y-3 rounded-md border p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="font-medium">Saved addresses</p>
+                          <p className="text-sm text-muted-foreground">
+                            Choose an address to auto-fill shipping details.
+                          </p>
+                        </div>
+                        <Button asChild variant="outline" size="sm">
+                          <Link to="/account/addresses">Manage</Link>
+                        </Button>
+                      </div>
+
+                      <RadioGroup
+                        value={selectedAddressId}
+                        onValueChange={(v) => setSelectedAddressId(v)}
+                        className="grid gap-3"
+                      >
+                        {sortedAddresses.map((addr) => {
+                          const line2 = addr.addressLine2?.trim();
+                          const summary = [
+                            addr.addressLine1,
+                            line2 ? line2 : null,
+                            `${addr.city}, ${addr.state} ${addr.zipCode}`,
+                          ]
+                            .filter(Boolean)
+                            .join(", ");
+
+                          return (
+                            <label
+                              key={addr._id}
+                              className="flex items-start gap-3 rounded-md border p-3 hover:bg-muted/40"
+                            >
+                              <RadioGroupItem value={addr._id} className="mt-1" />
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="font-medium truncate">{addr.label}</p>
+                                  {addr.isDefault && (
+                                    <span className="text-xs rounded-full bg-secondary px-2 py-0.5 text-secondary-foreground">
+                                      Default
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground">{addr.fullName}</p>
+                                <p className="text-sm text-muted-foreground">{addr.phone}</p>
+                                <p className="text-sm text-muted-foreground line-clamp-2">{summary}</p>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </RadioGroup>
+                    </div>
+                  )}
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="firstName">First Name *</Label>

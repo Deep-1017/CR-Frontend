@@ -24,6 +24,7 @@ import OrderConfirmation from './pages/OrderConfirmation';
 import Account from './pages/Account';
 import AccountOrders from './pages/AccountOrders';
 import OrderDetail from './pages/OrderDetail';
+import AddressBook from './pages/AddressBook';
 import CartSidebar from '@/components/CartSidebar';
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/order-confirmation/:orderId" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
               <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
               <Route path="/account/orders" element={<ProtectedRoute><AccountOrders /></ProtectedRoute>} />
+              <Route path="/account/addresses" element={<ProtectedRoute><AddressBook /></ProtectedRoute>} />
               <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

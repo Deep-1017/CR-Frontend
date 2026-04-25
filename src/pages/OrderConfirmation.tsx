@@ -679,39 +679,95 @@ const OrderConfirmation = () => {
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-stone-950">
                   <Mail className="h-5 w-5 text-emerald-600" />
-                  Email Verification
+                  Email Confirmation
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-stone-600">
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-emerald-700">Confirmation</p>
-                  <p className="mt-2 text-base font-medium text-emerald-950">
-                    {confirmationEmailSentAt
-                      ? `Confirmation email sent to ${order.customer.email}`
-                      : `Confirmation email is pending for ${order.customer.email}`}
-                  </p>
-                  {confirmationEmailSentAt ? (
-                    <p className="mt-1 text-sm text-emerald-700">
-                      Sent on {formatOrderTimestamp(confirmationEmailSentAt)}
-                    </p>
-                  ) : null}
+                <div className={`rounded-2xl border px-4 py-3 ${
+                  confirmationEmailSentAt 
+                    ? 'border-emerald-200 bg-emerald-50' 
+                    : confirmationEmailError 
+                    ? 'border-red-200 bg-red-50'
+                    : 'border-amber-200 bg-amber-50'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5">
+                      {confirmationEmailSentAt ? (
+                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      ) : confirmationEmailError ? (
+                        <CircleAlert className="h-5 w-5 text-red-600" />
+                      ) : (
+                        <Mail className="h-5 w-5 text-amber-600" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-xs uppercase tracking-[0.18em] ${
+                        confirmationEmailSentAt 
+                          ? 'text-emerald-700' 
+                          : confirmationEmailError 
+                          ? 'text-red-700'
+                          : 'text-amber-700'
+                      }`}>
+                        {confirmationEmailSentAt ? 'Email Sent' : confirmationEmailError ? 'Email Error' : 'Email Pending'}
+                      </p>
+                      <p className={`mt-2 text-base font-medium ${
+                        confirmationEmailSentAt 
+                          ? 'text-emerald-950' 
+                          : confirmationEmailError 
+                          ? 'text-red-950'
+                          : 'text-amber-950'
+                      }`}>
+                        {confirmationEmailSentAt
+                          ? `✓ Confirmation email sent to ${order.customer.email}`
+                          : confirmationEmailError
+                          ? `We couldn't send the confirmation automatically`
+                          : `Confirmation email is pending for ${order.customer.email}`}
+                      </p>
+                      {confirmationEmailSentAt ? (
+                        <p className="mt-1 text-sm text-emerald-700">
+                          Sent on {formatOrderTimestamp(confirmationEmailSentAt)}
+                        </p>
+                      ) : null}
+                      {confirmationEmailError ? (
+                        <p className="mt-1 text-sm text-red-700">
+                          {confirmationEmailError}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-start gap-3 rounded-2xl border border-stone-100 p-4">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-600" />
-                  <p>
+                
+                <div className="flex items-start gap-3 rounded-2xl border border-stone-100 bg-stone-50 p-4">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-600 flex-shrink-0" />
+                  <p className="text-sm leading-6">
                     {confirmationEmailError
-                      ? `We couldn't send the confirmation automatically: ${confirmationEmailError}`
-                      : "Your email is on file and tied to this order. If you need another copy, use the resend button below."}
+                      ? "Didn't receive the email? Check your spam folder or use the resend button below."
+                      : "Your email is on file and tied to this order. Check your inbox or spam folder for the confirmation details."}
                   </p>
                 </div>
+
                 <Button
                   type="button"
-                  variant="link"
-                  className="h-auto justify-start px-0 text-emerald-700"
+                  variant="outline"
+                  className={`w-full rounded-full border-2 ${
+                    confirmationEmailSentAt
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                      : 'border-stone-300 bg-white text-stone-700 hover:bg-stone-100'
+                  }`}
                   onClick={() => resendConfirmationMutation.mutate()}
                   disabled={resendConfirmationMutation.isPending}
                 >
-                  {resendConfirmationMutation.isPending ? "Sending confirmation..." : "Resend confirmation"}
+                  {resendConfirmationMutation.isPending ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Sending confirmation...
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Resend Confirmation Email
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
