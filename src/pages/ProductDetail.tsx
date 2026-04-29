@@ -12,6 +12,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { getProductById, getProducts } from "@/lib/api";
 import { formatINR } from "@/lib/utils";
+import ReviewList from "@/components/ReviewList";
 
 interface ProductReview {
   id: string;
@@ -507,37 +508,10 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {product.customerReviews && product.customerReviews.length > 0 && (
-          <div className="mb-16 border-t border-gray-200 pt-10">
-            <h2 className="mb-6 text-xl font-bold text-gray-900">Customer Reviews</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {product.customerReviews.map((review) => (
-                <div key={review.id} className="rounded-lg bg-gray-50 p-5">
-                  <div className="mb-3 flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-800 text-sm font-semibold text-white">
-                      {review.author[0]}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{review.author}</p>
-                      <p className="text-xs text-gray-400">{review.date}</p>
-                    </div>
-                    <div className="ml-auto flex items-center gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <span
-                          key={i}
-                          className={`text-sm ${i < review.rating ? "text-yellow-400" : "text-gray-200"}`}
-                        >
-                          *
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm leading-relaxed text-gray-600">{review.comment}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="mb-16 border-t border-gray-200 pt-10">
+          <h2 className="mb-6 text-xl font-bold text-gray-900">Customer Reviews</h2>
+          <ReviewList productId={product.id} />
+        </div>
 
         {relatedQuery.data && relatedQuery.data.length > 0 && (
           <div className="border-t border-gray-200 pt-10">

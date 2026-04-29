@@ -64,6 +64,35 @@ export const getProductById = async (id: string) => {
   return response.data;
 };
 
+export interface GetReviewsParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  rating?: string;
+}
+
+export const getProductReviews = async (productId: string, params: GetReviewsParams = {}) => {
+  const response = await api.get(`/products/${productId}/reviews`, { params });
+  return response.data;
+};
+
+export interface CreateReviewPayload {
+  rating: number;
+  title: string;
+  comment: string;
+  images?: string[];
+}
+
+export const createProductReview = async (productId: string, data: CreateReviewPayload) => {
+  const response = await api.post(`/products/${productId}/reviews`, data);
+  return response.data;
+};
+
+export const voteReview = async (productId: string, reviewId: string, type: "helpful" | "notHelpful" | null) => {
+  const response = await api.post(`/products/${productId}/reviews/${reviewId}/vote`, { type });
+  return response.data;
+};
+
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
 export const createOrder = async (orderData: unknown) => {
