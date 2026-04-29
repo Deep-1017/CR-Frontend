@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🛍️ CR Frontend
+# 🎸 CR Frontend
 
-### A modern, feature-rich fashion e-commerce storefront
+### A modern, feature-rich musical instruments e-commerce storefront
 
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -15,7 +15,7 @@
 
 ## 📋 Overview
 
-**CR Frontend** is the customer-facing storefront for the CR fashion e-commerce platform. Built with **React 18**, **TypeScript**, and **Tailwind CSS**, it offers a seamless shopping experience — from browsing curated collections to a smooth, intuitive checkout flow. The UI is powered by **shadcn/ui** and **Radix UI** primitives for accessible, polished components.
+**CR Frontend** is the customer-facing storefront for the CR musical instruments e-commerce platform. Built with **React 18**, **TypeScript**, and **Tailwind CSS**, it offers a seamless shopping experience — from browsing curated instrument collections to a smooth, intuitive checkout flow. The UI is powered by **shadcn/ui** and **Radix UI** primitives for accessible, polished components.
 
 ---
 
@@ -23,11 +23,11 @@
 
 | Feature | Description |
 |--------|-------------|
-| 🏠 **Home / Landing Page** | Hero section, featured products, promotions |
-| 🔍 **Shop & Discovery** | Filter by category, search, and sort products |
-| 🧾 **Product Detail Page** | Image gallery, size selection, add-to-cart |
+| 🏠 **Home / Landing Page** | Hero section, featured instruments, promotions |
+| 🔍 **Shop & Discovery** | Filter by category, search, and sort instruments |
+| 🧾 **Product Detail Page** | Image gallery, configuration/finish selection, add-to-cart |
 | 🛒 **Cart & Checkout** | Multi-step checkout with order summary |
-| ❤️ **Wishlist** | Save favourite items across sessions |
+| ❤️ **Wishlist** | Save favourite instruments across sessions |
 | 👤 **User Authentication** | Login, registration, and profile management |
 | 📱 **Fully Responsive** | Optimized for mobile, tablet, and desktop |
 | ⚡ **Instant HMR** | Vite-powered development with React Fast Refresh |
@@ -136,7 +136,7 @@ The storefront will be available at **[http://localhost:5173](http://localhost:5
 The UI follows a consistent design system built on Tailwind CSS custom tokens:
 
 - **Typography**: Inter / system font stack
-- **Color Palette**: Neutral grays with warm fashion-forward accent colors
+- **Color Palette**: Neutral grays with warm, music-focused accent colors
 - **Components**: Fully accessible via Radix UI primitives
 - **Animations**: Smooth micro-interactions with `tailwindcss-animate`
 - **Dark Mode**: System-aware + user-toggleable via `next-themes`
