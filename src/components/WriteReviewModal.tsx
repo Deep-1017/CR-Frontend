@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { createProductReview } from "@/lib/api";
+import { createProductReview, updateReview } from "@/lib/api";
 
 const reviewSchema = z.object({
   rating: z.number().min(1, "Please select a rating").max(5),
@@ -34,9 +34,24 @@ type ReviewFormValues = z.infer<typeof reviewSchema>;
 interface WriteReviewModalProps {
   productId: string;
   trigger?: React.ReactNode;
+  reviewId?: string;
+  editMode?: boolean;
+  initialData?: {
+    rating: number;
+    title: string;
+    comment: string;
+  };
+  onSuccess?: (review: unknown) => void;
 }
 
-export function WriteReviewModal({ productId, trigger }: WriteReviewModalProps) {
+export function WriteReviewModal({
+  productId,
+  trigger,
+  reviewId,
+  editMode = false,
+  initialData,
+  onSuccess,
+}: WriteReviewModalProps) {
   const [open, setOpen] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { isAuthenticated } = useAuth();
@@ -54,18 +69,50 @@ export function WriteReviewModal({ productId, trigger }: WriteReviewModalProps) 
   } = useForm<ReviewFormValues>({
     resolver: zodResolver(reviewSchema),
     defaultValues: {
-      rating: 0,
-      title: "",
-      comment: "",
+      rating: initialData?.rating ?? 0,
+      title: initialData?.title ?? "",
+      comment: initialData?.comment ?? "",
       images: [],
     },
   });
 
   const commentValue = watch("comment");
 
+  useEffect(() => {
+    if (open && editMode && initialData) {
+      reset({
+        rating: initialData.rating,
+        title: initialData.title,
+        comment: initialData.comment,
+        images: [],
+      });
+    }
+  }, [editMode, initialData, open, reset]);
+
   const mutation = useMutation({
-    mutationFn: (data: ReviewFormValues) => createProductReview(productId, data),
-    onSuccess: () => {
+    mutationFn: (data: ReviewFormValues) => {
+      if (editMode) {
+        if (!reviewId) {
+          throw new Error("Review ID is required to update a review.");
+        }
+        return updateReview(reviewId, data);
+      }
+
+      return createProductReview(productId, data);
+    },
+    onSuccess: (response) => {
+      const updatedReview = response?.review || response?.data || response;
+      onSuccess?.(updatedReview);
+
+      if (editMode) {
+        toast({
+          title: "Review updated",
+          description: "Your review has been updated.",
+        });
+        setOpen(false);
+        return;
+      }
+
       setIsSuccess(true);
       queryClient.invalidateQueries({ queryKey: ["reviews", productId] });
       toast({
@@ -78,7 +125,7 @@ export function WriteReviewModal({ productId, trigger }: WriteReviewModalProps) 
         ? error.response?.data?.message || "Something went wrong. Please try again."
         : "An unexpected error occurred.";
       toast({
-        title: "Error submitting review",
+        title: editMode ? "Error updating review" : "Error submitting review",
         description: message,
         variant: "destructive",
       });
@@ -94,10 +141,16 @@ export function WriteReviewModal({ productId, trigger }: WriteReviewModalProps) 
       navigate("/login?redirect=" + encodeURIComponent(window.location.pathname));
       return;
     }
+
     setOpen(newOpen);
     if (!newOpen) {
       setTimeout(() => {
-        reset();
+        reset({
+          rating: editMode ? (initialData?.rating ?? 0) : 0,
+          title: editMode ? (initialData?.title ?? "") : "",
+          comment: editMode ? (initialData?.comment ?? "") : "",
+          images: [],
+        });
         setIsSuccess(false);
         mutation.reset();
       }, 300);
@@ -128,9 +181,13 @@ export function WriteReviewModal({ productId, trigger }: WriteReviewModalProps) 
         ) : (
           <>
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold">Share Your Thoughts</DialogTitle>
+              <DialogTitle className="text-xl font-bold">
+                {editMode ? "Edit Your Review" : "Share Your Thoughts"}
+              </DialogTitle>
               <DialogDescription>
-                Write a review for this product to help other customers.
+                {editMode
+                  ? "Update your review for this product."
+                  : "Write a review for this product to help other customers."}
               </DialogDescription>
             </DialogHeader>
 
@@ -244,7 +301,9 @@ export function WriteReviewModal({ productId, trigger }: WriteReviewModalProps) 
                   Cancel
                 </Button>
                 <Button type="submit" disabled={mutation.isPending} className="bg-gray-900 text-white hover:bg-gray-800">
-                  {mutation.isPending ? "Submitting..." : "Submit Review"}
+                  {mutation.isPending
+                    ? (editMode ? "Updating..." : "Submitting...")
+                    : (editMode ? "Update Review" : "Submit Review")}
                 </Button>
               </div>
             </form>

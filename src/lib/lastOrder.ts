@@ -12,6 +12,7 @@ export interface LastOrderSnapshot {
   email: string;
   placedAt: string;
   pricing: LastOrderPricingSnapshot;
+  isGuest?: boolean;
 }
 
 const isFiniteNumber = (value: unknown): value is number =>

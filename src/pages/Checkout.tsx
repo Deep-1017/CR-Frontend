@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, LogIn, ShieldCheck, UserRound } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCart } from "@/contexts/CartContext";
 import { useOrder } from "@/contexts/OrderContext";
+import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { formatINR } from "@/lib/utils";
@@ -80,14 +81,76 @@ const getMissingFieldLabels = (formData: {
     .map(({ label }) => label);
 };
 
+// ─── Guest gate: shown when user is not authenticated ─────────────────────────
+
+const GuestGate = ({
+  onContinueAsGuest,
+}: {
+  onContinueAsGuest: () => void;
+}) => {
+  const navigate = useNavigate();
+
+  return (
+    <Card className="mx-auto max-w-lg border-stone-200 bg-white shadow-sm">
+      <CardHeader className="pb-2 text-center">
+        <CardTitle className="text-2xl font-bold text-stone-900">
+          How would you like to proceed?
+        </CardTitle>
+        <p className="mt-1 text-sm text-stone-500">
+          Sign in for a faster checkout, or continue as a guest.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-4">
+        <Button
+          id="checkout-login-btn"
+          className="h-14 w-full gap-3 rounded-xl bg-stone-900 text-base font-semibold text-white hover:bg-stone-800"
+          onClick={() => navigate("/login?redirect=/checkout")}
+        >
+          <LogIn className="h-5 w-5" />
+          Login / Create Account
+        </Button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-stone-200" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-3 text-stone-400">or</span>
+          </div>
+        </div>
+
+        <Button
+          id="checkout-guest-btn"
+          variant="outline"
+          className="h-14 w-full gap-3 rounded-xl border-2 border-stone-300 text-base font-semibold text-stone-700 hover:border-stone-400 hover:bg-stone-50"
+          onClick={onContinueAsGuest}
+        >
+          <UserRound className="h-5 w-5" />
+          Continue as Guest
+        </Button>
+
+        <div className="flex items-start gap-2 rounded-lg bg-stone-50 p-3 text-xs text-stone-500">
+          <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600" />
+          <span>Your information is secure. Guest checkout requires only email and shipping details — no password needed.</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// ─── Main checkout content ────────────────────────────────────────────────────
+
 const CheckoutContent = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { setConfirmedOrderId } = useOrder();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { data: addresses } = useAddresses();
+  const addressQuery = useAddresses(isAuthenticated);
+  const addresses = addressQuery.data;
   const paymentFinalizedRef = useRef(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
+  const [guestMode, setGuestMode] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -102,6 +165,9 @@ const CheckoutContent = () => {
     cardExpiry: "",
     cardCvv: "",
   });
+
+  // Determine if user sees the guest gate
+  const showGuestGate = !authLoading && !isAuthenticated && !guestMode;
 
   const sortedAddresses = useMemo(() => {
     if (!addresses) return [];
@@ -167,17 +233,13 @@ const CheckoutContent = () => {
     e.preventDefault();
     if (isProcessingPayment) return;
 
-    const authToken =
-      window.localStorage.getItem("auth_token") ??
-      window.localStorage.getItem("authToken") ??
-      window.localStorage.getItem("token");
-    if (!authToken) {
+    // For authenticated users, check token as before
+    if (!isAuthenticated && !guestMode) {
       toast({
         title: "Sign in required",
-        description: "Please login first to continue with payment.",
+        description: "Please login first or continue as guest.",
         variant: "destructive",
       });
-      navigate("/login?redirect=/checkout");
       return;
     }
 
@@ -189,6 +251,19 @@ const CheckoutContent = () => {
         variant: "destructive",
       });
       return;
+    }
+
+    // Validate email format for guests
+    if (guestMode && !isAuthenticated) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        toast({
+          title: "Invalid email",
+          description: "Please enter a valid email address.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (hasInvalidCartItems) {
@@ -234,6 +309,7 @@ const CheckoutContent = () => {
             });
 
             const orderId = verificationResponse.orderId || paymentOrder.orderId;
+            const isGuest = guestMode && !isAuthenticated;
 
             paymentFinalizedRef.current = true;
             setConfirmedOrderId(orderId);
@@ -242,11 +318,16 @@ const CheckoutContent = () => {
               email: customer.email,
               placedAt: new Date().toISOString(),
               pricing,
+              isGuest,
             });
             clearCart();
-            navigate(`/order-confirmation/${orderId}?new=true`, {
-              replace: true,
-            });
+
+            // For guests, include email in query so confirmation page can fetch the order
+            const confirmUrl = isGuest
+              ? `/order-confirmation/${orderId}?new=true&guest=true&email=${encodeURIComponent(customer.email)}`
+              : `/order-confirmation/${orderId}?new=true`;
+
+            navigate(confirmUrl, { replace: true });
           } catch (error) {
             logPaymentError(error, "verify-webhook");
             toast({
@@ -304,12 +385,60 @@ const CheckoutContent = () => {
     );
   }
 
+  // Show loading state while auth is resolving
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto flex items-center justify-center px-4 py-20">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-stone-900 border-t-transparent" />
+            <span className="text-sm text-stone-500">Loading...</span>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Show guest gate if not authenticated and not in guest mode
+  if (showGuestGate) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-12">
+          <h1 className="text-4xl font-bold mb-8 text-center">Checkout</h1>
+          <GuestGate onContinueAsGuest={() => setGuestMode(true)} />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8">Checkout</h1>
+
+        {/* Guest checkout banner */}
+        {guestMode && !isAuthenticated && (
+          <Alert className="mb-6 border-blue-200 bg-blue-50">
+            <UserRound className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-blue-900">Checking out as Guest</AlertTitle>
+            <AlertDescription className="text-blue-700">
+              No account needed. We'll send your order confirmation to the email below.{" "}
+              <button
+                type="button"
+                className="font-medium underline hover:text-blue-900"
+                onClick={() => navigate("/login?redirect=/checkout")}
+              >
+                Sign in instead
+              </button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="grid lg:grid-cols-3 gap-8">
@@ -341,7 +470,8 @@ const CheckoutContent = () => {
                   <CardTitle>Shipping Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {sortedAddresses.length > 0 && (
+                  {/* Saved addresses — only for authenticated users */}
+                  {isAuthenticated && sortedAddresses.length > 0 && (
                     <div className="space-y-3 rounded-md border p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
@@ -429,6 +559,7 @@ const CheckoutContent = () => {
                         value={formData.email}
                         onChange={handleChange}
                         required
+                        placeholder={guestMode && !isAuthenticated ? "We'll send confirmation here" : ""}
                       />
                     </div>
                     <div>

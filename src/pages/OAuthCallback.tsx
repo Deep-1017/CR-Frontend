@@ -15,7 +15,7 @@ export default function OAuthCallback() {
     }
 
     if (token) {
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem('access_token', token);
       window.location.replace('/');
     } else {
       navigate('/login?error=no_token', { replace: true });

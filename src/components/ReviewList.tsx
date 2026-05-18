@@ -1,12 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Star, ThumbsUp, ThumbsDown, Flag, ChevronLeft, ChevronRight, CheckCircle2, ChevronDown } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Star, ThumbsUp, ThumbsDown, Flag, ChevronLeft, ChevronRight, CheckCircle2, ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getProductReviews, GetReviewsParams, voteReview } from "@/lib/api";
+import {
+  deleteReview,
+  getProductReviews,
+  GetReviewsParams,
+  voteReview,
+} from "@/lib/api";
 import { WriteReviewModal } from "@/components/WriteReviewModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ReviewListProps {
   productId: string;
@@ -21,7 +37,8 @@ interface ReviewUser {
 
 interface Review {
   _id: string;
-  userId: ReviewUser;
+  user?: ReviewUser;
+  userId?: ReviewUser;
   productId: string;
   rating: number;
   title: string;
@@ -80,9 +97,25 @@ const StarRating = ({ rating }: { rating: number }) => {
   );
 };
 
-const ReviewCard = ({ review, onVoteUpdate }: { review: Review, onVoteUpdate?: (updatedReview: any) => void }) => {
+const getReviewUser = (review: Review) => review.user || review.userId;
+
+const ReviewCard = ({
+  review,
+  onVoteUpdate,
+  onReviewUpdated,
+  onReviewDeleted,
+}: {
+  review: Review;
+  onVoteUpdate?: (updatedReview: Review) => void;
+  onReviewUpdated?: (updatedReview: Review) => void;
+  onReviewDeleted?: (reviewId: string) => void;
+}) => {
   const { user, isAuthenticated } = useAuth();
   const [expanded, setExpanded] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const reviewUser = getReviewUser(review);
+  const loggedInUserId = user?.id || (user as any)?._id;
+  const isOwner = Boolean(loggedInUserId && reviewUser?._id === loggedInUserId);
   
   // Calculate initial helpful status based on user's ID
   const initialStatus = user && review.helpfulVotes?.includes(user.id) 
@@ -138,6 +171,20 @@ const ReviewCard = ({ review, onVoteUpdate }: { review: Review, onVoteUpdate?: (
     }
   };
 
+  const handleDelete = async () => {
+    setIsDeleting(true);
+
+    try {
+      await deleteReview(review._id);
+      onReviewDeleted?.(review._id);
+      toast.success("Review deleted successfully.");
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to delete review.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const formattedDate = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "long",
@@ -149,19 +196,19 @@ const ReviewCard = ({ review, onVoteUpdate }: { review: Review, onVoteUpdate?: (
       <div className="mb-3 flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-900 text-sm font-semibold text-white">
-            {review.userId?.avatar ? (
+            {reviewUser?.avatar ? (
               <img
-                src={review.userId.avatar}
-                alt={review.userId.name}
+                src={reviewUser.avatar}
+                alt={reviewUser.name}
                 className="h-full w-full rounded-full object-cover"
               />
             ) : (
-              review.userId?.name?.charAt(0).toUpperCase() || "U"
+              reviewUser?.name?.charAt(0).toUpperCase() || "U"
             )}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-gray-900">{review.userId?.name || "Anonymous User"}</span>
+              <span className="font-semibold text-gray-900">{reviewUser?.name || "Anonymous User"}</span>
               {review.isVerifiedPurchase && (
                 <span className="inline-flex items-center gap-1 rounded bg-green-50 px-1.5 py-0.5 text-xs font-medium text-green-700">
                   <CheckCircle2 className="h-3 w-3" /> Verified Purchase
@@ -175,6 +222,67 @@ const ReviewCard = ({ review, onVoteUpdate }: { review: Review, onVoteUpdate?: (
             </div>
           </div>
         </div>
+        {isOwner && (
+          <div className="flex items-center gap-2">
+            <WriteReviewModal
+              productId={review.productId}
+              reviewId={review._id}
+              editMode
+              initialData={{
+                rating: review.rating,
+                title: review.title,
+                comment: review.comment,
+              }}
+              onSuccess={(updatedReview) => {
+                onReviewUpdated?.({ ...review, ...(updatedReview as Partial<Review>) });
+              }}
+              trigger={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-gray-500 hover:text-gray-900"
+                  aria-label="Edit review"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                  aria-label="Delete review"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-w-sm">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete review?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this review?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      handleDelete();
+                    }}
+                    disabled={isDeleting}
+                    className="bg-red-600 text-white hover:bg-red-700"
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </div>
 
       <h4 className="mb-2 font-bold text-gray-900">{review.title}</h4>
@@ -234,6 +342,7 @@ const ReviewCard = ({ review, onVoteUpdate }: { review: Review, onVoteUpdate?: (
 
 export const ReviewList: React.FC<ReviewListProps> = ({ productId, onLoadComplete }) => {
   const { isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [limit] = useState(5);
   const [sortBy, setSortBy] = useState("recent");
@@ -261,6 +370,82 @@ export const ReviewList: React.FC<ReviewListProps> = ({ productId, onLoadComplet
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     document.getElementById("review-section-top")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const reviewsQueryKey = ["reviews", productId, page, limit, sortBy, ratingFilter];
+
+  const handleReviewUpdated = (updatedReview: Review) => {
+    queryClient.setQueryData<ReviewsResponse>(reviewsQueryKey, (currentData) => {
+      if (!currentData) return currentData;
+
+      const previousReview = currentData.reviews.find((review) => review._id === updatedReview._id);
+      const previousRating = previousReview?.rating;
+      const nextRating = updatedReview.rating;
+      const total = currentData.aggregatedStats.total;
+      const previousDistributionKey = previousRating?.toString() as keyof AggregatedStats["distribution"] | undefined;
+      const nextDistributionKey = nextRating?.toString() as keyof AggregatedStats["distribution"] | undefined;
+      const ratingChanged = Boolean(previousRating && nextRating && previousRating !== nextRating);
+      const nextDistribution = { ...currentData.aggregatedStats.distribution };
+
+      if (ratingChanged && previousDistributionKey && nextDistributionKey) {
+        nextDistribution[previousDistributionKey] = Math.max(0, nextDistribution[previousDistributionKey] - 1);
+        nextDistribution[nextDistributionKey] += 1;
+      }
+
+      return {
+        ...currentData,
+        reviews: currentData.reviews.map((review) =>
+          review._id === updatedReview._id
+            ? {
+                ...review,
+                ...updatedReview,
+                user: updatedReview.user || review.user,
+                userId: updatedReview.userId || review.userId,
+              }
+            : review
+        ),
+        aggregatedStats: {
+          ...currentData.aggregatedStats,
+          average: ratingChanged && total > 0
+            ? ((currentData.aggregatedStats.average * total) - previousRating + nextRating) / total
+            : currentData.aggregatedStats.average,
+          distribution: nextDistribution,
+        },
+      };
+    });
+  };
+
+  const handleReviewDeleted = (reviewId: string) => {
+    queryClient.setQueryData<ReviewsResponse>(reviewsQueryKey, (currentData) => {
+      if (!currentData) return currentData;
+
+      const deletedReview = currentData.reviews.find((review) => review._id === reviewId);
+      const deletedRating = deletedReview?.rating?.toString() as keyof AggregatedStats["distribution"] | undefined;
+      const total = currentData.aggregatedStats.total;
+      const nextTotal = Math.max(0, total - 1);
+
+      return {
+        ...currentData,
+        reviews: currentData.reviews.filter((review) => review._id !== reviewId),
+        pagination: {
+          ...currentData.pagination,
+          totalCount: Math.max(0, currentData.pagination.totalCount - 1),
+        },
+        aggregatedStats: {
+          ...currentData.aggregatedStats,
+          average: deletedReview && nextTotal > 0
+            ? ((currentData.aggregatedStats.average * total) - deletedReview.rating) / nextTotal
+            : 0,
+          total: nextTotal,
+          distribution: deletedRating
+            ? {
+                ...currentData.aggregatedStats.distribution,
+                [deletedRating]: Math.max(0, currentData.aggregatedStats.distribution[deletedRating] - 1),
+              }
+            : currentData.aggregatedStats.distribution,
+        },
+      };
+    });
   };
 
   if (isLoading) {
@@ -427,7 +612,12 @@ export const ReviewList: React.FC<ReviewListProps> = ({ productId, onLoadComplet
       ) : (
         <div className="space-y-4">
           {reviews.map((review) => (
-            <ReviewCard key={review._id} review={review} />
+            <ReviewCard
+              key={review._id}
+              review={review}
+              onReviewUpdated={handleReviewUpdated}
+              onReviewDeleted={handleReviewDeleted}
+            />
           ))}
         </div>
       )}

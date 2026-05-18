@@ -12,12 +12,13 @@ export const addressKeys = {
   all: ["addresses"] as const,
 };
 
-export const useAddresses = () => {
+export const useAddresses = (enabled: boolean = true) => {
   return useQuery({
     queryKey: addressKeys.all,
     queryFn: listAddresses,
     staleTime: 30_000,
     retry: 1,
+    enabled,
   });
 };
 

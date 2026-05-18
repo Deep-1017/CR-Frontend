@@ -3,12 +3,24 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import { Mail, ShieldCheck, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { FormEvent, useEffect, useState } from "react";
+import api from "@/lib/axios";
+import { toast } from "sonner";
 
 const Account = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
+  const [name, setName] = useState(user?.name || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setName(user?.name || "");
+    setPhone(user?.phone || "");
+  }, [user?.name, user?.phone]);
 
   const userInitials = user?.name
     ? user.name
@@ -22,6 +34,29 @@ const Account = () => {
   const handleLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
+  };
+
+  const handleProfileUpdate = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSaving(true);
+
+    try {
+      const { data } = await api.patch("/auth/profile", {
+        name,
+        phone,
+      });
+
+      if (data?.success && data?.user) {
+        updateUser(data.user);
+        toast.success("Profile updated successfully.");
+      }
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message || "Failed to update profile. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -76,10 +111,33 @@ const Account = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-stone-600">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-stone-400">Full name</p>
-                  <p className="mt-1 text-base font-medium text-stone-900">{user?.name || "Not available"}</p>
-                </div>
+                <form onSubmit={handleProfileUpdate} className="space-y-4">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-stone-400">Full name</p>
+                    <Input
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="Your full name"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-stone-400">Phone</p>
+                    <Input
+                      value={phone}
+                      onChange={(event) => setPhone(event.target.value)}
+                      placeholder="Phone number"
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="rounded-full"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? "Saving..." : "Save profile"}
+                  </Button>
+                </form>
                 <div>
                   <p className="text-xs uppercase tracking-[0.16em] text-stone-400">Email</p>
                   <p className="mt-1 text-base font-medium text-stone-900">{user?.email || "Not available"}</p>

@@ -39,12 +39,15 @@ export interface CreatePaymentOrderPayload {
   currency?: "INR";
 }
 
-export interface CreatePaymentOrderResponse {
-  orderId: string;
+export interface RazorpayOrderDetails {
   razorpayOrderId: string;
   amount: number;
   currency: string;
   key: string;
+}
+
+export interface CreatePaymentOrderResponse extends RazorpayOrderDetails {
+  orderId: string;
 }
 
 export interface RazorpaySuccessResponse {
@@ -253,7 +256,7 @@ export const createPaymentOrder = async (
 };
 
 export const initiateRazorpayPayment = async (
-  orderData: CreatePaymentOrderResponse,
+  orderData: RazorpayOrderDetails,
   onSuccess: (response: RazorpaySuccessResponse) => void,
   onFailure?: (error?: RazorpayErrorResponse) => void,
   onDismiss?: () => void
@@ -295,6 +298,19 @@ export const verifyPaymentWebhook = async (
 ): Promise<VerifyPaymentResponse> => {
   try {
     const response = await api.post<VerifyPaymentResponse>("/payments/verify-webhook", payload);
+    return response.data;
+  } catch (error) {
+    throw new Error(getErrorMessage(error));
+  }
+};
+
+export const retryPaymentOrder = async (
+  orderId: string
+): Promise<RazorpayOrderDetails> => {
+  try {
+    const response = await api.post<RazorpayOrderDetails>(
+      `/orders/${orderId}/retry-payment`
+    );
     return response.data;
   } catch (error) {
     throw new Error(getErrorMessage(error));

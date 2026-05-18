@@ -11,9 +11,11 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  phone: string;
   avatar: string;
   role: string;
   provider: string;
+  isEmailVerified: boolean;
 }
 
 interface AuthContextType {
@@ -22,6 +24,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  updateUser: (user: AuthUser) => void;
   logout: () => Promise<void>;
   loginWithGoogle: () => void;
 }
@@ -35,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('access_token');
     if (!token) {
       setIsLoading(false);
       return;
@@ -44,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const { data } = await api.get('/auth/profile');
       if (data.success) setUser(data.user);
     } catch {
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('access_token');
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = async (email: string, password: string) => {
     const { data } = await api.post('/auth/login', { email, password });
-    if (data.token) localStorage.setItem('auth_token', data.token);
+    if (data.accessToken) localStorage.setItem('access_token', data.accessToken);
     setUser(data.user);
   };
 
@@ -66,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       email,
       password,
     });
-    if (data.token) localStorage.setItem('auth_token', data.token);
+    if (data.accessToken) localStorage.setItem('access_token', data.accessToken);
     setUser(data.user);
   };
 
@@ -74,9 +77,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       await api.post('/auth/logout');
     } finally {
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('access_token');
       setUser(null);
     }
+  };
+
+  const updateUser = (updatedUser: AuthUser) => {
+    setUser(updatedUser);
   };
 
   const googleAuthUrl = (() => {
@@ -97,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isAuthenticated: !!user,
         login,
         register,
+        updateUser,
         logout,
         loginWithGoogle,
       }}

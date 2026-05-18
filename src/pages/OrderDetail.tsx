@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -23,6 +23,11 @@ import { useOrderDetail, type DetailOrderStatus } from "@/hooks/useOrderDetail";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import {
+  initiateRazorpayPayment,
+  retryPaymentOrder,
+  verifyPaymentWebhook,
+} from "@/services/paymentService";
 
 const STATUS_CONFIG: Record<
   string,
@@ -97,6 +102,7 @@ const OrderDetail = () => {
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { addToCart, setIsCartOpen } = useCart();
   const { toast } = useToast();
+  const [isRetryingPayment, setIsRetryingPayment] = useState(false);
   const {
     data: order,
     isLoading,
@@ -150,9 +156,76 @@ const OrderDetail = () => {
     setIsCartOpen(true);
   };
 
+  const handleRetryPayment = async () => {
+    if (!order?._id || isRetryingPayment) return;
+
+    setIsRetryingPayment(true);
+    try {
+      const retryOrder = await retryPaymentOrder(order._id);
+
+      await initiateRazorpayPayment(
+        retryOrder,
+        async (response) => {
+          try {
+            await verifyPaymentWebhook({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            toast({
+              title: "Payment successful",
+              description: "Your order payment has been verified.",
+            });
+            await refetch();
+          } catch (error) {
+            toast({
+              title: "Payment verification failed",
+              description:
+                error instanceof Error
+                  ? error.message
+                  : "Please contact support with your payment reference.",
+              variant: "destructive",
+            });
+          } finally {
+            setIsRetryingPayment(false);
+          }
+        },
+        (error) => {
+          setIsRetryingPayment(false);
+          toast({
+            title: "Payment failed",
+            description:
+              error?.description ||
+              "The payment was not completed. You can retry again.",
+            variant: "destructive",
+          });
+        },
+        () => {
+          setIsRetryingPayment(false);
+        },
+      );
+    } catch (error) {
+      setIsRetryingPayment(false);
+      toast({
+        title: "Unable to retry payment",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again in a moment.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const status = order
     ? STATUS_CONFIG[order.orderStatus] ?? STATUS_CONFIG.Pending
     : STATUS_CONFIG.Pending;
+  const canRetryPayment = order
+    ? ["failed", "pending"].includes(order.paymentStatus.toLowerCase()) &&
+      !["cod", "cash_on_delivery"].includes(
+        (order.paymentMethod ?? order.paymentDetails?.provider ?? "").toLowerCase(),
+      )
+    : false;
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] print:bg-white">
@@ -390,6 +463,20 @@ const OrderDetail = () => {
                             : "Failed"}
                       </Badge>
                     </div>
+                    {canRetryPayment && (
+                      <Button
+                        className="mt-2 w-full rounded-full bg-stone-900 text-white hover:bg-stone-800"
+                        disabled={isRetryingPayment}
+                        onClick={handleRetryPayment}
+                      >
+                        <RefreshCw
+                          className={`mr-2 h-4 w-4 ${
+                            isRetryingPayment ? "animate-spin" : ""
+                          }`}
+                        />
+                        {isRetryingPayment ? "Opening payment..." : "Retry Payment"}
+                      </Button>
+                    )}
                   </div>
                 </section>
               </div>

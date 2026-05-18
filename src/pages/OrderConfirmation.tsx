@@ -292,15 +292,25 @@ const OrderConfirmation = () => {
   const lastOrderSnapshot = useMemo(() => readLastOrderSnapshot(), []);
   const isNewConfirmation = searchParams.get('new') === 'true';
   
+  // Guest detection: from query params or lastOrder snapshot
+  const isGuestFromQuery = searchParams.get('guest') === 'true';
+  const guestEmailFromQuery = searchParams.get('email')?.trim().toLowerCase() ?? '';
+  const guestEmailFromSnapshot = lastOrderSnapshot?.orderId === orderId && lastOrderSnapshot?.isGuest
+    ? lastOrderSnapshot.email
+    : '';
+  const guestEmail = guestEmailFromQuery || guestEmailFromSnapshot;
+  const isGuestCheckout = Boolean(!isAuthenticated && guestEmail);
+  
   const normalizedUserEmail = user?.email.trim().toLowerCase() ?? "";
-  const hasOrderAccess = Boolean(orderId) && Boolean(isAuthenticated);
+  const hasOrderAccess = Boolean(orderId) && (Boolean(isAuthenticated) || isGuestCheckout);
   const isConfirmedOrder = confirmedOrderId === orderId;
 
   // All query hooks must be called unconditionally
   const orderQuery = useQuery<Order>({
-    queryKey: ["order-confirmation", orderId],
+    queryKey: ["order-confirmation", orderId, guestEmail],
     queryFn: async () => {
-      const response = await api.get(`/orders/${orderId}`);
+      const params = isGuestCheckout ? `?guestEmail=${encodeURIComponent(guestEmail)}` : '';
+      const response = await api.get(`/orders/${orderId}${params}`);
       return normalizeOrder(response.data, orderId);
     },
     enabled: hasOrderAccess,
@@ -321,6 +331,8 @@ const OrderConfirmation = () => {
 
   useEffect(() => {
     if (hasOrderAccess) return;
+    // Don't redirect guests — they may just lack the email param
+    if (isGuestFromQuery) return;
 
     if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`, { replace: true });
@@ -333,11 +345,12 @@ const OrderConfirmation = () => {
       variant: "destructive",
     });
     navigate("/", { replace: true });
-  }, [hasOrderAccess, isAuthenticated, navigate, toast, location, clearConfirmedOrder]);
+  }, [hasOrderAccess, isAuthenticated, isGuestFromQuery, navigate, toast, location, clearConfirmedOrder]);
 
   useEffect(() => {
     // Prevent back button loop: if user navigates back to confirmation page after it was cleared
     if (isNewConfirmation) return; // Allow new confirmations
+    if (isGuestCheckout) return; // Guests don't have an orders page
     if (!hasOrderAccess) return; // Let other effects handle
     if (orderQuery.isLoading || orderQuery.isError) return;
 
@@ -350,7 +363,7 @@ const OrderConfirmation = () => {
       });
       navigate("/account/orders", { replace: true });
     }
-  }, [isNewConfirmation, hasOrderAccess, orderQuery.isLoading, orderQuery.isError, orderQuery.data, toast, navigate]);
+  }, [isNewConfirmation, isGuestCheckout, hasOrderAccess, orderQuery.isLoading, orderQuery.isError, orderQuery.data, toast, navigate]);
 
   useEffect(() => {
     if (!orderError) return;
@@ -795,12 +808,32 @@ const OrderConfirmation = () => {
                   </li>
                 </ul>
                 <div className="no-print flex flex-col gap-3">
-                  <Button
-                    className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700"
-                    onClick={() => navigate("/account/orders")}
-                  >
-                    View My Orders
-                  </Button>
+                  {isGuestCheckout ? (
+                    <>
+                      <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                        <p className="font-semibold">Save your Order ID:</p>
+                        <p className="mt-1 break-all font-mono text-base font-bold text-amber-950">{order.id}</p>
+                        <p className="mt-2 text-amber-700">We've sent a confirmation to <span className="font-medium">{guestEmail || order.customer.email}</span>.</p>
+                      </div>
+                      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+                        <p className="font-semibold">Create an account to track your orders easily</p>
+                        <p className="mt-1 text-blue-700">Sign up with <span className="font-medium">{guestEmail || order.customer.email}</span> to view order history and get faster checkout.</p>
+                        <Button
+                          className="mt-3 rounded-full bg-blue-600 text-white hover:bg-blue-700"
+                          onClick={() => navigate(`/register?email=${encodeURIComponent(guestEmail || order.customer.email)}`)}
+                        >
+                          Create Account
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <Button
+                      className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700"
+                      onClick={() => navigate("/account/orders")}
+                    >
+                      View My Orders
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     className="rounded-full border-stone-300 text-stone-700 hover:bg-stone-100"

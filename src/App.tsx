@@ -32,9 +32,9 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <WishlistProvider>
-        <CartProvider>
-          <AuthProvider>
+      <AuthProvider>
+        <WishlistProvider>
+          <CartProvider>
           <OrderProvider>
           <Router>
             <Routes>
@@ -47,9 +47,9 @@ const App = () => (
               <Route path="/shop" element={<Shop />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+              <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders/:orderId" element={<ProtectedRoute><OrderDetail /></ProtectedRoute>} />
-              <Route path="/order-confirmation/:orderId" element={<ProtectedRoute><OrderConfirmation /></ProtectedRoute>} />
+              <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
               <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
               <Route path="/account/orders" element={<ProtectedRoute><AccountOrders /></ProtectedRoute>} />
               <Route path="/account/addresses" element={<ProtectedRoute><AddressBook /></ProtectedRoute>} />
@@ -71,9 +71,9 @@ const App = () => (
             }}
           />
           <Toaster />
-          </AuthProvider>
-        </CartProvider>
-      </WishlistProvider>
+          </CartProvider>
+        </WishlistProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
